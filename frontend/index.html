@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="forest">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+  </head>
+  <body>
+    <script>
+      if ("serviceWorker" in navigator && !sessionStorage.getItem("sw-cleared")) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          if (registrations.length === 0) return;
+
+          registrations.forEach((registration) => registration.unregister());
+
+          if ("caches" in window) {
+            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+          }
+
+          sessionStorage.setItem("sw-cleared", "1");
+          window.location.reload();
+        });
+      }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
