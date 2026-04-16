@@ -16,10 +16,20 @@ const sessionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    participant: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    participants: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+    },
+    maxParticipants: {
+      type: Number,
+      min: 2,
+      max: 4,
+      default: 2,
     },
     status: {
       type: String,

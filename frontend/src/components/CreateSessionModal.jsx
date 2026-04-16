@@ -33,6 +33,7 @@ function CreateSessionModal({
                 const selectedProblem = problems.find((p) => p.title === e.target.value);
                 setRoomConfig({
                   difficulty: selectedProblem.difficulty,
+                  maxParticipants: roomConfig.maxParticipants || 2,
                   problem: e.target.value,
                 });
               }}
@@ -49,6 +50,26 @@ function CreateSessionModal({
             </select>
           </div>
 
+          <div className="space-y-2">
+            <label className="label">
+              <span className="label-text font-semibold">Max Participants</span>
+            </label>
+            <select
+              className="select w-full"
+              value={roomConfig.maxParticipants || 2}
+              onChange={(e) =>
+                setRoomConfig((prev) => ({
+                  ...prev,
+                  maxParticipants: Number(e.target.value),
+                }))
+              }
+            >
+              <option value={2}>2 participants</option>
+              <option value={3}>3 participants</option>
+              <option value={4}>4 participants</option>
+            </select>
+          </div>
+
           {/* ROOM SUMMARY */}
           {roomConfig.problem && (
             <div className="alert alert-success">
@@ -59,7 +80,7 @@ function CreateSessionModal({
                   Problem: <span className="font-medium">{roomConfig.problem}</span>
                 </p>
                 <p>
-                  Max Participants: <span className="font-medium">2 (1-on-1 session)</span>
+                  Max Participants: <span className="font-medium">{roomConfig.maxParticipants || 2}</span>
                 </p>
               </div>
             </div>

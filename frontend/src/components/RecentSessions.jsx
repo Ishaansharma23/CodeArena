@@ -19,7 +19,10 @@ function RecentSessions({ sessions, isLoading }) {
               <Loader className="w-10 h-10 animate-spin text-primary" />
             </div>
           ) : sessions.length > 0 ? (
-            sessions.map((session) => (
+            sessions.map((session) => {
+              const participantCount = (session.participants?.length || 0) + 1;
+
+              return (
               <div
                 key={session._id}
                 className={`card relative ${
@@ -70,8 +73,8 @@ function RecentSessions({ sessions, isLoading }) {
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       <span>
-                        {session.participant ? "2" : "1"} participant
-                        {session.participant ? "s" : ""}
+                        {participantCount} participant
+                        {participantCount > 1 ? "s" : ""}
                       </span>
                     </div>
                   </div>
@@ -84,7 +87,8 @@ function RecentSessions({ sessions, isLoading }) {
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-full text-center py-16">
               <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-3xl flex items-center justify-center">

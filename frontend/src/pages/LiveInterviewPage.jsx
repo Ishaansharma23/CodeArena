@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import toast from "react-hot-toast";
 import {
   Loader2Icon,
+  Mic2Icon,
   MicIcon,
   MicOffIcon,
   PhoneOffIcon,
@@ -53,8 +54,14 @@ function LiveInterviewPage() {
   const [isComplete, setIsComplete] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [subtitles, setSubtitles] = useState(initialQuestion);
-  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceUnlocked, setVoiceUnlocked] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [voiceAgentEnabled, setVoiceAgentEnabled] = useState(true);
+  const [hasVoiceGesture, setHasVoiceGesture] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [isVoiceBlocked, setIsVoiceBlocked] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
@@ -68,7 +75,182 @@ function LiveInterviewPage() {
 
   const userVideoRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const lastSpokenRef = useRef("");
+  const lastSpokenTurnRef = useRef("");
+  const recognitionRef = useRef(null);
+  const shouldRestartRecognitionRef = useRef(false);
+  const hasShownVoiceBlockedToastRef = useRef(false);
+  const transcriptEndRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const voiceUnlockedRef = useRef(false);
+
+  const enableVoice = () => {
+    if (!speechSupported) {
+      toast.error("AI voice is not supported in this browser.");
+      return;
+    }
+
+    if (voiceEnabled) {
+      setVoiceEnabled(false);
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    if (voiceUnlocked || voiceUnlockedRef.current) {
+      setVoiceEnabled(true);
+      setIsVoiceBlocked(false);
+      hasShownVoiceBlockedToastRef.current = false;
+      return;
+    }
+
+    lastSpokenTurnRef.current = "";
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx && !audioContextRef.current) {
+      audioContextRef.current = new AudioCtx();
+    }
+    if (audioContextRef.current?.state === "suspended") {
+      audioContextRef.current.resume().catch(() => {});
+    }
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+
+    const utterance = new SpeechSynthesisUtterance("okay");
+    utterance.volume = 0.01;
+    utterance.rate = 10;
+    utterance.pitch = 0;
+
+    utterance.onstart = () => {
+      voiceUnlockedRef.current = true;
+      setVoiceUnlocked(true);
+      setVoiceEnabled(true);
+      setIsVoiceBlocked(false);
+      hasShownVoiceBlockedToastRef.current = false;
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setIsVoiceBlocked(false);
+      hasShownVoiceBlockedToastRef.current = false;
+    };
+
+    utterance.onerror = (event) => {
+      console.error("Voice unlock error:", event.error);
+      setIsSpeaking(false);
+      voiceUnlockedRef.current = false;
+      setVoiceUnlocked(false);
+      setVoiceEnabled(false);
+      setIsVoiceBlocked(true);
+      if (!hasShownVoiceBlockedToastRef.current) {
+        toast.error("AI voice was blocked by browser. Click Voice once to enable audio.");
+        hasShownVoiceBlockedToastRef.current = true;
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const createRecognitionInstance = () => {
+    if (!SpeechRecognition) return null;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      let finalized = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const transcript = event.results[i][0]?.transcript || "";
+        if (!transcript) continue;
+        if (event.results[i].isFinal) {
+          finalized += `${transcript} `;
+        } else {
+          interim += `${transcript} `;
+        }
+      }
+
+      const cleanInterim = interim.trim();
+      const cleanFinal = finalized.trim();
+
+      if (cleanInterim) {
+        setAnswer(cleanInterim);
+        setLiveTranscript(cleanInterim);
+      }
+
+      if (cleanFinal) {
+        setAnswer(cleanFinal);
+        setLiveTranscript(cleanFinal);
+        submitAnswerText(cleanFinal);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      const blockedErrors = ["not-allowed", "service-not-allowed"];
+      const nonFatal = ["no-speech", "audio-capture", "aborted"];
+      if (blockedErrors.includes(event.error)) {
+        setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+        setVoiceAgentEnabled(false);
+        shouldRestartRecognitionRef.current = false;
+      }
+      if (!nonFatal.includes(event.error)) {
+        console.error("Voice recognition error:", event.error);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (shouldRestartRecognitionRef.current) {
+        setTimeout(() => {
+          if (!shouldRestartRecognitionRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            recognitionRef.current = null;
+            setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+            setVoiceAgentEnabled(false);
+          }
+        }, 240);
+      } else {
+        recognitionRef.current = null;
+      }
+    };
+
+    return recognition;
+  };
+
+  const handleVoiceAgentToggle = () => {
+    setHasVoiceGesture(true);
+    setVoiceError("");
+    setLiveTranscript("");
+    setVoiceAgentEnabled((prev) => {
+      const next = !prev;
+      if (next && SpeechRecognition && !recognitionRef.current) {
+        const recognition = createRecognitionInstance();
+        if (recognition) {
+          recognitionRef.current = recognition;
+          shouldRestartRecognitionRef.current = true;
+          try {
+            recognition.start();
+          } catch {
+            setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+            recognitionRef.current = null;
+            shouldRestartRecognitionRef.current = false;
+          }
+        }
+      }
+      return next;
+    });
+  };
 
   const assistantCount = useMemo(
     () => messages.filter((message) => message.role === "assistant").length,
@@ -159,37 +341,75 @@ function LiveInterviewPage() {
     });
   }, [cameraEnabled]);
 
+  const speak = useCallback(
+    (text) => {
+      const isUnlocked = voiceUnlocked || voiceUnlockedRef.current;
+      if (!speechSupported || !voiceEnabled || !isUnlocked) return;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice =
+        voices.find((voice) => /en(-|_)?(IN|GB|US)?/i.test(voice.lang)) ||
+        voices.find((voice) => /^en/i.test(voice.lang)) ||
+        null;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setIsVoiceBlocked(false);
+        hasShownVoiceBlockedToastRef.current = false;
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setIsVoiceBlocked(true);
+        if (!hasShownVoiceBlockedToastRef.current) {
+          toast.error("AI voice was blocked by browser. Click Voice once to enable audio.");
+          hasShownVoiceBlockedToastRef.current = true;
+        }
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    },
+    [speechSupported, voiceEnabled, voiceUnlocked]
+  );
+
+  useEffect(() => {
+    const isUnlocked = voiceUnlocked || voiceUnlockedRef.current;
+    if (!voiceEnabled || !isUnlocked || !currentQuestion) return;
+    const turnKey = `${messages.length}:${currentQuestion}`;
+    if (turnKey === lastSpokenTurnRef.current) return;
+    const timer = setTimeout(() => {
+      speak(currentQuestion);
+      lastSpokenTurnRef.current = turnKey;
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [currentQuestion, voiceEnabled, voiceUnlocked, messages.length, speak]);
+
   useEffect(() => {
     if (!speechSupported) return;
-    if (!ttsEnabled) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-    if (!currentQuestion || currentQuestion === lastSpokenRef.current) return;
+    const interval = setInterval(() => {
+      if (window.speechSynthesis?.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
 
-    const utterance = new SpeechSynthesisUtterance(currentQuestion);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    return () => clearInterval(interval);
+  }, [speechSupported]);
 
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-    lastSpokenRef.current = currentQuestion;
-    setSubtitles(currentQuestion);
+  const submitAnswerText = (rawAnswer) => {
+    const trimmed = String(rawAnswer || "").trim();
+    if (!trimmed || !interviewId || isComplete || submitMutation.isPending) return;
 
-    return () => {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    };
-  }, [currentQuestion, ttsEnabled, speechSupported]);
-
-  const handleSend = () => {
-    if (!answer.trim() || !interviewId || isComplete) return;
-    const trimmed = answer.trim();
     setAnswer("");
+    setLiveTranscript("");
 
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
 
@@ -216,6 +436,10 @@ function LiveInterviewPage() {
     );
   };
 
+  const handleSend = () => {
+    submitAnswerText(answer);
+  };
+
   const handleEnd = () => {
     if (!interviewId || endMutation.isPending) return;
     endMutation.mutate(interviewId, {
@@ -230,28 +454,77 @@ function LiveInterviewPage() {
     });
   };
 
-  const handleVoiceInput = () => {
-    if (!SpeechRecognition || isListening) return;
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+  useEffect(() => {
+    const supportsRecognition = Boolean(SpeechRecognition);
+    if (!supportsRecognition) return;
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
-    recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
-      if (transcript) {
-        setAnswer((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    const canRunVoiceAgent =
+      voiceAgentEnabled &&
+      hasVoiceGesture &&
+      micEnabled &&
+      !isComplete &&
+      !isSpeaking &&
+      !submitMutation.isPending;
+
+    if (!canRunVoiceAgent) {
+      shouldRestartRecognitionRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // no-op
+        }
       }
-    };
+      return;
+    }
 
-    recognition.start();
-  };
+    if (recognitionRef.current) return;
+
+    const recognition = createRecognitionInstance();
+    if (!recognition) return;
+
+    recognitionRef.current = recognition;
+    shouldRestartRecognitionRef.current = true;
+
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+      setVoiceAgentEnabled(false);
+    }
+
+    return () => {
+      shouldRestartRecognitionRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // no-op
+        }
+      }
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
+  }, [
+    SpeechRecognition,
+    voiceAgentEnabled,
+    hasVoiceGesture,
+    micEnabled,
+    isComplete,
+    isSpeaking,
+    submitMutation.isPending,
+    interviewId,
+  ]);
 
   const recentMessages = messages.slice(-4);
   const showLoading = !currentQuestion && (interviewLoading || !messages.length);
+
+  useEffect(() => {
+    if (transcriptEndRef.current) {
+      transcriptEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages]);
 
   return (
     <div className="min-h-screen interview-bg text-slate-100">
@@ -271,7 +544,15 @@ function LiveInterviewPage() {
             </div>
             <div className="interview-panel px-4 py-2">
               <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/60">Status</p>
-              <p className="text-sm text-slate-200">{isComplete ? "Complete" : "In Progress"}</p>
+              <p className="text-sm text-slate-200">
+                {isSpeaking
+                  ? "AI Speaking..."
+                  : isListening
+                    ? "Listening..."
+                    : isComplete
+                      ? "Complete"
+                      : "In Progress"}
+              </p>
             </div>
           </div>
         </header>
@@ -309,6 +590,7 @@ function LiveInterviewPage() {
                 {!recentMessages.length && (
                   <p className="text-sm text-slate-400">Waiting for the first question...</p>
                 )}
+                <div ref={transcriptEndRef} />
               </div>
             </div>
           </div>
@@ -346,14 +628,34 @@ function LiveInterviewPage() {
                 {SpeechRecognition && (
                   <button
                     className={`text-xs uppercase tracking-[0.28em] transition ${
-                      isListening ? "text-emerald-200" : "text-slate-400"
+                      voiceAgentEnabled ? "text-emerald-200" : "text-slate-400"
                     }`}
-                    onClick={handleVoiceInput}
+                    onClick={handleVoiceAgentToggle}
                   >
-                    {isListening ? "Listening..." : "Dictate"}
+                    {!hasVoiceGesture
+                      ? "Voice Agent: Click to Start"
+                      : voiceAgentEnabled
+                        ? isListening
+                          ? "Voice Agent: Listening"
+                          : "Voice Agent: Ready"
+                        : "Voice Agent: Off"}
                   </button>
                 )}
               </div>
+              {!voiceEnabled && (
+                <p className="text-xs text-emerald-200">Click Voice once to enable AI speech.</p>
+              )}
+              {voiceError && (
+                <p className="text-xs text-rose-200">{voiceError}</p>
+              )}
+              {!SpeechRecognition && (
+                <p className="text-xs text-rose-200">
+                  Live speech recognition is not supported in this browser. Please type your answer.
+                </p>
+              )}
+              {SpeechRecognition && liveTranscript && (
+                <p className="text-xs text-emerald-200">Listening: {liveTranscript}</p>
+              )}
               <textarea
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
                 rows={4}
@@ -369,7 +671,11 @@ function LiveInterviewPage() {
                 disabled={isComplete || submitMutation.isPending}
               />
               <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">AI follows up based on your response quality.</p>
+                <p className="text-xs text-slate-400">
+                  {isVoiceBlocked
+                    ? "Voice blocked by browser. Click Voice button once to enable sound."
+                    : "AI follows up based on your response quality."}
+                </p>
                 <button
                   className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-2 text-xs uppercase tracking-[0.28em] text-emerald-200 transition hover:bg-emerald-500/30"
                   onClick={handleSend}
@@ -400,11 +706,20 @@ function LiveInterviewPage() {
           </button>
           {speechSupported && (
             <button
-              className={`control-btn ${ttsEnabled ? "control-btn-on" : "control-btn-off"}`}
-              onClick={() => setTtsEnabled((prev) => !prev)}
+              className={`control-btn ${voiceEnabled ? "control-btn-on" : "control-btn-off"}`}
+             onClick={enableVoice}
             >
-              {ttsEnabled ? <Volume2Icon className="size-5" /> : <VolumeXIcon className="size-5" />}
-              <span>{ttsEnabled ? "Voice" : "Muted"}</span>
+              {voiceEnabled ? <Volume2Icon className="size-5" /> : <VolumeXIcon className="size-5" />}
+              <span>{voiceEnabled ? "Voice On" : "Enable Voice"}</span>
+            </button>
+          )}
+          {SpeechRecognition && (
+            <button
+              className={`control-btn ${voiceAgentEnabled ? "control-btn-on" : "control-btn-off"}`}
+              onClick={handleVoiceAgentToggle}
+            >
+              <Mic2Icon className="size-5" />
+              <span>{voiceAgentEnabled ? "AI Listen On" : "AI Listen Off"}</span>
             </button>
           )}
           <button className="control-btn control-btn-danger" onClick={handleEnd}>

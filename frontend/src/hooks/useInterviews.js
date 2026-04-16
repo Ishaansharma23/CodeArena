@@ -3,17 +3,21 @@ import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import { interviewApi } from "../api/interviews";
 
-const getTokenWithTimeout = async (getToken, isSignedIn, timeoutMs = 1500) => {
-  if (!isSignedIn) return null;
-
-  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
-
-  try {
-    const token = await Promise.race([getToken(), timeout]);
-    return token || null;
-  } catch {
-    return null;
+const requireInterviewToken = async (getToken, isSignedIn) => {
+  if (!isSignedIn) {
+    throw new Error("Please sign in to continue the interview.");
   }
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const token = await getToken();
+      if (token) return token;
+    } catch {
+      // Retry once when Clerk token fetch is delayed.
+    }
+  }
+
+  throw new Error("Unable to verify your session. Please refresh and try again.");
 };
 
 export const useStartInterview = () => {
@@ -22,7 +26,7 @@ export const useStartInterview = () => {
   return useMutation({
     mutationKey: ["startInterview"],
     mutationFn: async (payload) =>
-      interviewApi.startInterview(payload, await getTokenWithTimeout(getToken, isSignedIn)),
+      interviewApi.startInterview(payload, await requireInterviewToken(getToken, isSignedIn)),
     onError: (error) => toast.error(error.response?.data?.message || error.message),
   });
 };
@@ -33,7 +37,7 @@ export const useSubmitAnswer = () => {
   return useMutation({
     mutationKey: ["submitAnswer"],
     mutationFn: async ({ id, payload }) =>
-      interviewApi.submitAnswer(id, payload, await getTokenWithTimeout(getToken, isSignedIn)),
+      interviewApi.submitAnswer(id, payload, await requireInterviewToken(getToken, isSignedIn)),
     onError: (error) => toast.error(error.response?.data?.message || error.message),
   });
 };
@@ -44,7 +48,7 @@ export const useEndInterview = () => {
   return useMutation({
     mutationKey: ["endInterview"],
     mutationFn: async (id) =>
-      interviewApi.endInterview(id, await getTokenWithTimeout(getToken, isSignedIn)),
+      interviewApi.endInterview(id, await requireInterviewToken(getToken, isSignedIn)),
     onError: (error) => toast.error(error.response?.data?.message || error.message),
   });
 };
@@ -55,7 +59,7 @@ export const useInterviewById = (id) => {
   return useQuery({
     queryKey: ["interview", id],
     queryFn: async () =>
-      interviewApi.getInterviewById(id, await getTokenWithTimeout(getToken, isSignedIn)),
+      interviewApi.getInterviewById(id, await requireInterviewToken(getToken, isSignedIn)),
     enabled: !!id && isLoaded && isSignedIn,
   });
 };
@@ -66,7 +70,7 @@ export const useInterviewReport = (id) => {
   return useQuery({
     queryKey: ["interviewReport", id],
     queryFn: async () =>
-      interviewApi.getReport(id, await getTokenWithTimeout(getToken, isSignedIn)),
+      interviewApi.getReport(id, await requireInterviewToken(getToken, isSignedIn)),
     enabled: !!id && isLoaded && isSignedIn,
   });
 };
@@ -76,7 +80,7 @@ export const useInterviewHistory = () => {
 
   return useQuery({
     queryKey: ["interviewHistory"],
-    queryFn: async () => interviewApi.getHistory(await getTokenWithTimeout(getToken, isSignedIn)),
+    queryFn: async () => interviewApi.getHistory(await requireInterviewToken(getToken, isSignedIn)),
     enabled: isLoaded && isSignedIn,
   });
 };

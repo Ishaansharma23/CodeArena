@@ -37,7 +37,12 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
               <LoaderIcon className="size-10 animate-spin text-primary" />
             </div>
           ) : sessions.length > 0 ? (
-            sessions.map((session) => (
+            sessions.map((session) => {
+              const participantCount = (session.participants?.length || 0) + 1;
+              const maxParticipants = session.maxParticipants || 2;
+              const isFull = participantCount >= maxParticipants;
+
+              return (
               <div
                 key={session._id}
                 className="card bg-base-200 border-2 border-base-300 hover:border-primary/50"
@@ -70,9 +75,9 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <UsersIcon className="size-4" />
-                          <span className="text-xs">{session.participant ? "2/2" : "1/2"}</span>
+                          <span className="text-xs">{participantCount}/{maxParticipants}</span>
                         </div>
-                        {session.participant && !isUserInSession(session) ? (
+                        {isFull && !isUserInSession(session) ? (
                           <span className="badge badge-error badge-sm">FULL</span>
                         ) : (
                           <span className="badge badge-success badge-sm">OPEN</span>
@@ -81,7 +86,7 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
                     </div>
                   </div>
 
-                  {session.participant && !isUserInSession(session) ? (
+                  {isFull && !isUserInSession(session) ? (
                     <button className="btn btn-disabled btn-sm">Full</button>
                   ) : (
                     <Link to={`/session/${session._id}`} className="btn btn-primary btn-sm gap-2">
@@ -91,7 +96,8 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
                   )}
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-16">
               <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center">

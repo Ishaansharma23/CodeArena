@@ -6,9 +6,9 @@ import { BufferMemory } from "langchain/memory";
 import { ENV } from "../env.js";
 import { retrieveResumeContext } from "../resumeVectors.js";
 
-const primaryModelName = ENV.GEMINI_MODEL || "gemini-1.5-flash-latest";
-const fallbackModelName = ENV.GEMINI_FALLBACK_MODEL || "gemini-1.0-pro";
-const safeModelName = "gemini-1.5-flash-latest";
+const primaryModelName = ENV.GEMINI_MODEL || "gemini-1.5-flash";
+const fallbackModelName = ENV.GEMINI_FALLBACK_MODEL || "gemini-1.5-pro";
+const safeModelName = "gemini-1.5-flash";
 
 const MAX_INPUT_CHARS = 12000;
 
@@ -16,6 +16,34 @@ const pickDifficulty = (answerQuality, base = "medium") => {
   if (answerQuality === "strong") return "hard";
   if (answerQuality === "weak") return "easy";
   return base;
+};
+
+const normalizeQuestion = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getRecentAssistantQuestions = (history = [], count = 4) =>
+  history
+    .filter((item) => item.role === "assistant" && item.content)
+    .slice(-count)
+    .map((item) => item.content);
+
+const isQuestionRepeated = (candidate, recentQuestions = []) => {
+  const normalizedCandidate = normalizeQuestion(candidate);
+  if (!normalizedCandidate) return false;
+
+  return recentQuestions.some((question) => {
+    const normalizedQuestion = normalizeQuestion(question);
+    if (!normalizedQuestion) return false;
+    if (normalizedCandidate === normalizedQuestion) return true;
+    return (
+      normalizedCandidate.includes(normalizedQuestion.slice(0, 24)) ||
+      normalizedQuestion.includes(normalizedCandidate.slice(0, 24))
+    );
+  });
 };
 
 const pickResumeCue = (resumeMeta, resumeText) => {
@@ -59,11 +87,22 @@ const buildFallbackQuestion = ({ questionCount, resumeMeta, resumeText, answerQu
 
   if (questionCount >= 1 && questionCount <= 2) {
     const topic = resumeCue ? ` from your resume: ${resumeCue}` : " from your resume";
+    if (questionCount === 1) {
+      return {
+        question:
+          answerQuality === "weak"
+            ? "Thanks for introducing yourself. Can you briefly describe your current role and key responsibilities?"
+            : `Great intro. What core skills have you used most in your recent work${topic}?`,
+        category: "project",
+        difficulty,
+      };
+    }
+
     return {
       question:
         answerQuality === "weak"
-          ? `Briefly summarize your background${topic}.`
-          : `I noticed${topic}. Can you walk me through your experience with it?${followUpHint}`,
+          ? `Could you tell me one technology${topic} that you are most confident with and why?`
+          : `I noticed${topic}. Which part did you personally implement and what challenges did you face?${followUpHint}`,
       category: "project",
       difficulty,
     };
@@ -146,7 +185,7 @@ const assessAnswerQuality = (answer) => {
   if (!trimmed) return "none";
   const wordCount = trimmed.split(/\s+/).length;
 
-  if (wordCount < 25 || trimmed.length < 140) return "weak";
+  if (wordCount < 15 || trimmed.length < 80) return "weak";
   if (wordCount > 90 || trimmed.length > 600) return "strong";
   return "ok";
 };
@@ -186,12 +225,17 @@ const buildProjectPromptContext = async ({ resume, resumeMeta, questionCount, la
     };
   }
 
-  const pineconeContext = await retrieveResumeContext({
-    resume,
-    questionCount,
-    lastAnswer,
-    pastSummaries,
-  });
+  let pineconeContext = { chunks: [], context: "", source: "vector-retrieval-skipped" };
+  try {
+    pineconeContext = await retrieveResumeContext({
+      resume,
+      questionCount,
+      lastAnswer,
+      pastSummaries,
+    });
+  } catch (error) {
+    console.warn("Project context fallback enabled:", error?.message || error);
+  }
 
   if (pineconeContext.context) {
     return pineconeContext;
@@ -281,6 +325,7 @@ const questionPrompt = ChatPromptTemplate.fromMessages([
     "system",
     "You are a professional AI interviewer for a live video interview. Ask ONE question at a time. " +
       "Return ONLY valid JSON with keys: question, category, difficulty. No markdown, no extra text. " +
+      "Do NOT repeat the same question. If the answer is weak, rephrase or simplify instead of repeating. " +
       "STRICT FLOW based on questionCount: " +
       "0 = friendly greeting plus 'Introduce yourself'; " +
       "1-2 = background and skills questions; " +
@@ -343,6 +388,7 @@ export const generateNextQuestion = async ({
 }) => {
   const stage = getInterviewStage(questionCount);
   const answerQuality = assessAnswerQuality(lastAnswer);
+  const recentAssistantQuestions = getRecentAssistantQuestions(history);
 
   if (!ENV.GEMINI_API_KEY) {
     console.warn("Gemini disabled: GEMINI_API_KEY (or GOOGLE_API_KEY) is not configured.");
@@ -368,6 +414,9 @@ export const generateNextQuestion = async ({
     `Question count: ${questionCount}`,
     `Answer quality: ${answerQuality}`,
     lastAnswer ? `Last answer:\n${clampText("Last answer", lastAnswer)}` : "",
+    recentAssistantQuestions.length
+      ? `Already asked questions (avoid repeating):\n${recentAssistantQuestions.join("\n")}`
+      : "",
     stageContext.context ? `Relevant resume context:\n${stageContext.context}` : "",
     stage !== "project" && resumeMeta?.projects?.length
       ? `Project references:\n${formatResumeHighlights({ projects: resumeMeta.projects })}`
@@ -392,20 +441,40 @@ export const generateNextQuestion = async ({
   const payload = safeJsonParse(result.content || "");
 
   if (payload?.question) {
-    return {
+    const candidate = {
       question: payload.question,
       category: payload.category || (stage === "technical" ? "dsa" : stage === "behavioral" || stage === "closing" ? "behavioral" : "project"),
       difficulty: payload.difficulty || (stage === "intro" || stage === "background" || stage === "closing" ? "easy" : answerQuality === "strong" ? "hard" : answerQuality === "weak" ? "easy" : "medium"),
     };
+
+    if (!isQuestionRepeated(candidate.question, recentAssistantQuestions)) {
+      return candidate;
+    }
   }
 
-  return (
-    (result.content?.trim() && {
-      question: result.content.trim(),
-      category: stage === "technical" ? "dsa" : stage === "behavioral" || stage === "closing" ? "behavioral" : "project",
-      difficulty: stage === "intro" || stage === "background" || stage === "closing" ? "easy" : answerQuality === "strong" ? "hard" : answerQuality === "weak" ? "easy" : "medium",
-    }) || buildFallbackQuestion({ questionCount, resumeMeta, resumeText, answerQuality, lastAnswer })
-  );
+  const fallbackQuestion = buildFallbackQuestion({
+    questionCount,
+    resumeMeta,
+    resumeText,
+    answerQuality,
+    lastAnswer,
+  });
+
+  if (isQuestionRepeated(fallbackQuestion.question, recentAssistantQuestions)) {
+    const nonRepeatedFallback = buildFallbackQuestion({
+      questionCount: questionCount + 1,
+      resumeMeta,
+      resumeText,
+      answerQuality,
+      lastAnswer,
+    });
+
+    if (!isQuestionRepeated(nonRepeatedFallback.question, recentAssistantQuestions)) {
+      return nonRepeatedFallback;
+    }
+  }
+
+  return fallbackQuestion;
 };
 
 export const generateFinalReport = async ({ resumeText, transcript }) => {

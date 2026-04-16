@@ -3,7 +3,7 @@ import Session from "../models/Session.js";
 
 export async function createSession(req, res) {
   try {
-    const { problem, difficulty } = req.body;
+    const { problem, difficulty, maxParticipants } = req.body;
     const userId = req.user._id;
     const clerkId = req.user.clerkId;
 
@@ -15,13 +15,26 @@ export async function createSession(req, res) {
     const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     // create session in db
-    const session = await Session.create({ problem, difficulty, host: userId, callId });
+    const normalizedMaxParticipants = Math.min(Math.max(Number(maxParticipants) || 2, 2), 4);
+
+    const session = await Session.create({
+      problem,
+      difficulty,
+      host: userId,
+      callId,
+      maxParticipants: normalizedMaxParticipants,
+    });
 
     // create stream video call
     await streamClient.video.call("default", callId).getOrCreate({
       data: {
         created_by_id: clerkId,
-        custom: { problem, difficulty, sessionId: session._id.toString() },
+        custom: {
+          problem,
+          difficulty,
+          sessionId: session._id.toString(),
+          maxParticipants: normalizedMaxParticipants,
+        },
       },
     });
 
@@ -45,7 +58,7 @@ export async function getActiveSessions(_, res) {
   try {
     const sessions = await Session.find({ status: "active" })
       .populate("host", "name profileImage email clerkId")
-      .populate("participant", "name profileImage email clerkId")
+      .populate("participants", "name profileImage email clerkId")
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -63,7 +76,7 @@ export async function getMyRecentSessions(req, res) {
     // get sessions where user is either host or participant
     const sessions = await Session.find({
       status: "completed",
-      $or: [{ host: userId }, { participant: userId }],
+      $or: [{ host: userId }, { participants: userId }],
     })
       .sort({ createdAt: -1 })
       .limit(20);
@@ -81,7 +94,7 @@ export async function getSessionById(req, res) {
 
     const session = await Session.findById(id)
       .populate("host", "name email profileImage clerkId")
-      .populate("participant", "name email profileImage clerkId");
+      .populate("participants", "name email profileImage clerkId");
 
     if (!session) return res.status(404).json({ message: "Session not found" });
 
@@ -110,10 +123,20 @@ export async function joinSession(req, res) {
       return res.status(400).json({ message: "Host cannot join their own session as participant" });
     }
 
-    // check if session is already full - has a participant
-    if (session.participant) return res.status(409).json({ message: "Session is full" });
+    const alreadyJoined = (session.participants || []).some(
+      (participantId) => participantId.toString() === userId.toString()
+    );
 
-    session.participant = userId;
+    if (alreadyJoined) {
+      return res.status(200).json({ session, message: "Already joined" });
+    }
+
+    const participantSlots = Math.max((session.maxParticipants || 2) - 1, 1);
+    if ((session.participants || []).length >= participantSlots) {
+      return res.status(409).json({ message: "Session is full" });
+    }
+
+    session.participants.push(userId);
     await session.save();
 
     const channel = chatClient.channel("messaging", session.callId);
