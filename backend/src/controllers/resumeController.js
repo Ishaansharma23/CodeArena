@@ -1,6 +1,7 @@
 import pdf from "pdf-parse";
 import Resume from "../models/Resume.js";
 import { extractResumeData } from "../lib/resumeParser.js";
+import { indexResumeVectors } from "../lib/resumeVectors.js";
 
 export const uploadResume = async (req, res) => {
   try {
@@ -20,7 +21,12 @@ export const uploadResume = async (req, res) => {
       projects: data.projects,
     });
 
-    res.status(201).json({ resume });
+    const vectorResult = await indexResumeVectors(resume);
+
+    res.status(201).json({
+      resume,
+      vectorIndex: vectorResult,
+    });
   } catch (error) {
     console.error("Error in uploadResume controller:", error);
     res.status(500).json({ message: "Failed to upload resume" });

@@ -48,6 +48,7 @@ export const startInterview = async (req, res) => {
         techStack: resume.techStack,
         projects: resume.projects,
       },
+      resume,
       pastSummaries,
       history: [],
       lastAnswer: null,
@@ -131,6 +132,7 @@ export const submitAnswer = async (req, res) => {
             projects: resume.projects,
           }
         : null,
+      resume,
       pastSummaries,
       history: interview.history,
       lastAnswer: answer,
@@ -231,7 +233,6 @@ export const getMyInterviewHistory = async (req, res) => {
   try {
     const interviews = await Interview.find({ user: req.user._id, status: "completed" })
       .sort({ endedAt: -1 })
-      .limit(20)
       .select("report endedAt resume status startedAt questions createdAt")
       .populate("resume", "fileName")
       .lean();

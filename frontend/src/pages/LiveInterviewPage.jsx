@@ -279,7 +279,7 @@ function LiveInterviewPage() {
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
             <div className="interview-panel relative overflow-hidden aspect-video">
-              <AiAvatar isSpeaking={isSpeaking} />
+              <AiAvatar isSpeaking={isSpeaking} text={subtitles} />
               <div className="absolute left-4 top-4 rounded-full bg-emerald-500/20 px-3 py-1 text-xs uppercase tracking-[0.28em] text-emerald-200">
                 AI Interviewer
               </div>

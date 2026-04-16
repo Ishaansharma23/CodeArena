@@ -4,6 +4,7 @@ import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { BufferMemory } from "langchain/memory";
 
 import { ENV } from "../env.js";
+import { retrieveResumeContext } from "../resumeVectors.js";
 
 const primaryModelName = ENV.GEMINI_MODEL || "gemini-1.5-flash-latest";
 const fallbackModelName = ENV.GEMINI_FALLBACK_MODEL || "gemini-1.0-pro";
@@ -168,6 +169,61 @@ const formatResumeHighlights = (resumeMeta) => {
     .join("\n");
 };
 
+const getInterviewStage = (questionCount = 0) => {
+  if (questionCount === 0) return "intro";
+  if (questionCount >= 1 && questionCount <= 2) return "background";
+  if (questionCount >= 3 && questionCount <= 5) return "project";
+  if (questionCount >= 6 && questionCount <= 8) return "technical";
+  if (questionCount >= 9 && questionCount <= 10) return "behavioral";
+  return "closing";
+};
+
+const buildProjectPromptContext = async ({ resume, resumeMeta, questionCount, lastAnswer, pastSummaries }) => {
+  if (!resume) {
+    return {
+      context: formatResumeHighlights(resumeMeta),
+      source: "resume-highlights",
+    };
+  }
+
+  const pineconeContext = await retrieveResumeContext({
+    resume,
+    questionCount,
+    lastAnswer,
+    pastSummaries,
+  });
+
+  if (pineconeContext.context) {
+    return pineconeContext;
+  }
+
+  return {
+    context: formatResumeHighlights(resumeMeta),
+    source: pineconeContext.source || "resume-highlights",
+  };
+};
+
+const buildStageContext = async ({ stage, resumeText, resumeMeta, resume, questionCount, lastAnswer, pastSummaries }) => {
+  const highlights = formatResumeHighlights(resumeMeta);
+
+  if (stage === "project") {
+    return buildProjectPromptContext({
+      resume,
+      resumeMeta,
+      questionCount,
+      lastAnswer,
+      pastSummaries,
+    });
+  }
+
+  const trimmedResume = resumeText ? clampText("Resume", resumeText) : "";
+
+  return {
+    context: [highlights, trimmedResume].filter(Boolean).join("\n\n"),
+    source: "resume-text",
+  };
+};
+
 const createModel = (modelName) => {
   const temperature = parseTemperature();
   return new ChatGoogleGenerativeAI({
@@ -223,19 +279,18 @@ const invokeWithFallback = async (prompt, params) => {
 const questionPrompt = ChatPromptTemplate.fromMessages([
   [
     "system",
-    "You are an AI interviewer for a live video interview. Ask ONE question at a time. " +
+    "You are a professional AI interviewer for a live video interview. Ask ONE question at a time. " +
       "Return ONLY valid JSON with keys: question, category, difficulty. No markdown, no extra text. " +
-      "Example: {\"question\":\"Tell me about yourself\",\"category\":\"behavioral\",\"difficulty\":\"easy\"}. " +
-      "STRICT FLOW based on questionCount (number of questions already asked): " +
-      "0: Friendly greeting + ask 'Introduce yourself' (category behavioral, difficulty easy). " +
-      "1-2: Resume-based skills/background questions (category project). " +
-      "3-5: Deep project questions based on resume (category project). " +
-      "6-8: Technical/DSA questions (category dsa). " +
-      "9-10: Behavioral questions (category behavioral). " +
-      ">10: Closing question (category behavioral, difficulty easy). " +
-      "Personalize strictly using resumeText/resumeHighlights. " +
-      "If answerQuality is weak, simplify the next question. If strong, ask a deeper follow-up referencing lastAnswer. " +
-      "Ask only one question.",
+      "STRICT FLOW based on questionCount: " +
+      "0 = friendly greeting plus 'Introduce yourself'; " +
+      "1-2 = background and skills questions; " +
+      "3-5 = deep project questions; " +
+      "6-8 = technical or DSA questions; " +
+      "9-10 = behavioral questions; " +
+      ">10 = closing question. " +
+      "Keep a conversational tone, personalize from the supplied context, and simplify when answerQuality is weak. " +
+      "When answerQuality is strong, ask a deeper follow-up that references the last answer. " +
+      "Never ask a random question.",
   ],
   new MessagesPlaceholder("history"),
   ["human", "{input}"],
@@ -245,9 +300,7 @@ const reportPrompt = ChatPromptTemplate.fromMessages([
   [
     "system",
     "You are an AI interviewer. Generate a final interview report in JSON only. " +
-      "Return: {{\"technicalScore\": 0-10, \"dsaScore\": 0-10, \"communicationScore\": 0-10, " +
-      "\"strengths\": string[], \"weaknesses\": string[], \"suggestions\": string[], " +
-      "\"verdict\": string, \"summary\": string}}.",
+      "Return {\"technicalScore\":0-10,\"dsaScore\":0-10,\"communicationScore\":0-10,\"strengths\":[string],\"weaknesses\":[string],\"suggestions\":[string],\"verdict\":string,\"summary\":string}. ",
   ],
   ["human", "{input}"],
 ]);
@@ -282,13 +335,14 @@ const toHistoryMessages = async (history, memory) => {
 export const generateNextQuestion = async ({
   resumeText,
   resumeMeta,
+  resume,
   pastSummaries,
   history,
   lastAnswer,
   questionCount,
 }) => {
+  const stage = getInterviewStage(questionCount);
   const answerQuality = assessAnswerQuality(lastAnswer);
-  const resumeHighlights = formatResumeHighlights(resumeMeta);
 
   if (!ENV.GEMINI_API_KEY) {
     console.warn("Gemini disabled: GEMINI_API_KEY (or GOOGLE_API_KEY) is not configured.");
@@ -299,15 +353,27 @@ export const generateNextQuestion = async ({
   await toHistoryMessages(history, memory);
 
   const memoryVars = await memory.loadMemoryVariables({});
+  const stageContext = await buildStageContext({
+    stage,
+    resumeText,
+    resumeMeta,
+    resume,
+    questionCount,
+    lastAnswer,
+    pastSummaries,
+  });
 
   const input = [
+    `Interview stage: ${stage}`,
     `Question count: ${questionCount}`,
     `Answer quality: ${answerQuality}`,
     lastAnswer ? `Last answer:\n${clampText("Last answer", lastAnswer)}` : "",
-    resumeHighlights ? `Resume highlights:\n${clampText("Resume highlights", resumeHighlights)}` : "",
-    `Resume text:\n${clampText("Resume", resumeText)}`,
+    stageContext.context ? `Relevant resume context:\n${stageContext.context}` : "",
+    stage !== "project" && resumeMeta?.projects?.length
+      ? `Project references:\n${formatResumeHighlights({ projects: resumeMeta.projects })}`
+      : "",
     pastSummaries ? `Past interview summaries:\n${clampText("Past summaries", pastSummaries)}` : "",
-    "Generate the next question now.",
+    "Generate the next interview question now.",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -326,14 +392,18 @@ export const generateNextQuestion = async ({
   const payload = safeJsonParse(result.content || "");
 
   if (payload?.question) {
-    return payload;
+    return {
+      question: payload.question,
+      category: payload.category || (stage === "technical" ? "dsa" : stage === "behavioral" || stage === "closing" ? "behavioral" : "project"),
+      difficulty: payload.difficulty || (stage === "intro" || stage === "background" || stage === "closing" ? "easy" : answerQuality === "strong" ? "hard" : answerQuality === "weak" ? "easy" : "medium"),
+    };
   }
 
   return (
     (result.content?.trim() && {
       question: result.content.trim(),
-      category: "project",
-      difficulty: "medium",
+      category: stage === "technical" ? "dsa" : stage === "behavioral" || stage === "closing" ? "behavioral" : "project",
+      difficulty: stage === "intro" || stage === "background" || stage === "closing" ? "easy" : answerQuality === "strong" ? "hard" : answerQuality === "weak" ? "easy" : "medium",
     }) || buildFallbackQuestion({ questionCount, resumeMeta, resumeText, answerQuality, lastAnswer })
   );
 };
