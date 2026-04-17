@@ -40,8 +40,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const elements = document.querySelectorAll("[data-reveal]");
-    if (!elements.length) return undefined;
+    if (!isLoaded || typeof document === "undefined") return undefined;
+
+    if (typeof IntersectionObserver === "undefined") {
+      document.querySelectorAll("[data-reveal]").forEach((element) => {
+        element.classList.add("is-visible");
+      });
+      return undefined;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -55,9 +61,38 @@ function App() {
       { threshold: 0.2 }
     );
 
-    elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, [location.pathname]);
+    const observeElement = (element) => {
+      if (!element || element.dataset.revealObserved === "true") return;
+      element.dataset.revealObserved = "true";
+      observer.observe(element);
+    };
+
+    const observeTree = (root) => {
+      if (!root || root.nodeType !== 1) return;
+      if (root.matches?.("[data-reveal]")) {
+        observeElement(root);
+      }
+      root.querySelectorAll?.("[data-reveal]").forEach((element) => observeElement(element));
+    };
+
+    observeTree(document.body);
+
+    let mutationObserver;
+    if (typeof MutationObserver !== "undefined") {
+      mutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => observeTree(node));
+        });
+      });
+
+      mutationObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    return () => {
+      observer.disconnect();
+      mutationObserver?.disconnect();
+    };
+  }, [location.pathname, isLoaded]);
 
   // this will get rid of the flickering effect
   if (!isLoaded) return null;
