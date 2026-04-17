@@ -35,22 +35,22 @@ function ReportPage() {
               <div className="card" data-reveal>
                 <div className="card-body">
                   <h2 className="text-2xl font-black mb-4">Interview Overview</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="stat bg-base-200 rounded-xl">
-                      <div className="stat-title">Status</div>
-                      <div className="stat-value text-white">{interview?.status || "-"}</div>
+                  <div className="ca-stat-grid md:grid-cols-3">
+                    <div className="ca-stat">
+                      <p className="ca-stat-title">Status</p>
+                      <p className="ca-stat-value">{interview?.status || "-"}</p>
                     </div>
-                    <div className="stat bg-base-200 rounded-xl">
-                      <div className="stat-title">Questions</div>
-                      <div className="stat-value text-white">
+                    <div className="ca-stat">
+                      <p className="ca-stat-title">Questions</p>
+                      <p className="ca-stat-value">
                         {interview?.questions?.length ?? 0}
-                      </div>
+                      </p>
                     </div>
-                    <div className="stat bg-base-200 rounded-xl">
-                      <div className="stat-title">Duration</div>
-                      <div className="stat-value text-white">
+                    <div className="ca-stat">
+                      <p className="ca-stat-title">Duration</p>
+                      <p className="ca-stat-value">
                         {formatDuration(interview?.startedAt, interview?.endedAt)}
-                      </div>
+                      </p>
                     </div>
                   </div>
 
@@ -83,8 +83,8 @@ function ReportPage() {
                           key={`${message.role}-${index}`}
                           className={`rounded-xl p-3 text-sm border ${
                             message.role === "assistant"
-                              ? "bg-white/5 border-white/10"
-                              : "bg-base-200 border-white/10"
+                              ? "ca-panel-soft border-white/10"
+                              : "ca-panel border-white/10"
                           }`}
                         >
                           <p className="text-xs uppercase opacity-70 mb-1">

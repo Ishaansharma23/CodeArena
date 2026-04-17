@@ -25,33 +25,31 @@ function RecentSessions({ sessions, isLoading }) {
               return (
               <div
                 key={session._id}
-                className={`card relative ${
+                className={`relative ca-panel transition-colors ${
                   session.status === "active"
-                    ? "bg-white/5 border border-[var(--border-hover)]"
-                    : "bg-base-200 border border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
+                    ? "border-[var(--border-hover)]"
+                    : "hover:border-[var(--border-hover)]"
                 }`}
                 data-reveal
                 style={{ transitionDelay: `${index * 0.04}s` }}
               >
                 {session.status === "active" && (
                   <div className="absolute top-3 right-3">
-                    <div className="badge gap-1">
-                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                    <div className="ca-chip">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)] animate-pulse" />
                       ACTIVE
                     </div>
                   </div>
                 )}
 
-                <div className="card-body p-5">
+                <div className="p-5">
                   <div className="flex items-start gap-3 mb-4">
                     <div className="w-12 h-12 rounded-xl border border-[var(--border-subtle)] flex items-center justify-center">
                       <Code2 className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-base mb-1 truncate">{session.problem}</h3>
-                      <span
-                        className={`badge badge-sm ${getDifficultyBadgeClass(session.difficulty)}`}
-                      >
+                      <span className={`${getDifficultyBadgeClass(session.difficulty)} text-xs`}>
                         {session.difficulty}
                       </span>
                     </div>

@@ -47,7 +47,7 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
               return (
               <div
                 key={session._id}
-                className="card bg-base-200 border border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
+                className="ca-panel transition-colors hover:border-[var(--border-hover)]"
                 data-reveal
                 style={{ transitionDelay: `${index * 0.04}s` }}
               >
@@ -56,13 +56,13 @@ function ActiveSessions({ sessions, isLoading, isUserInSession }) {
                   <div className="flex items-center gap-4 flex-1">
                     <div className="relative size-14 rounded-xl border border-[var(--border-subtle)] flex items-center justify-center">
                       <Code2Icon className="size-7 text-white" />
-                      <div className="absolute -top-1 -right-1 size-4 bg-white rounded-full border-2 border-base-100" />
+                      <div className="absolute -top-1 -right-1 size-4 rounded-full bg-[var(--text-secondary)] border-2 border-[var(--bg-secondary)]" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-bold text-lg truncate">{session.problem}</h3>
-                        <span className={`badge badge-sm ${getDifficultyBadgeClass(session.difficulty)}`}>
+                        <span className={`${getDifficultyBadgeClass(session.difficulty)} text-xs`}>
                           {session.difficulty.slice(0, 1).toUpperCase() +
                             session.difficulty.slice(1)}
                         </span>

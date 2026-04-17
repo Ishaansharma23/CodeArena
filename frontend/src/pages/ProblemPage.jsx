@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { PROBLEMS } from "../data/problems";
+import { PROBLEMS as PROBLEMS_DATA } from "../data/problems";
 import Navbar from "../components/Navbar";
 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -15,28 +15,33 @@ import confetti from "canvas-confetti";
 function ProblemPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const problems = PROBLEMS_DATA || {};
 
   const [currentProblemId, setCurrentProblemId] = useState("two-sum");
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-  const [code, setCode] = useState(PROBLEMS[currentProblemId].starterCode.javascript);
+  const [code, setCode] = useState(
+    problems[currentProblemId]?.starterCode?.javascript || ""
+  );
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
 
-  const currentProblem = PROBLEMS[currentProblemId];
+  const currentProblem = problems[currentProblemId];
 
   // update problem when URL param changes
   useEffect(() => {
-    if (id && PROBLEMS[id]) {
+    if (id && problems[id]) {
       setCurrentProblemId(id);
-      setCode(PROBLEMS[id].starterCode[selectedLanguage]);
+      setCode(problems[id].starterCode[selectedLanguage]);
       setOutput(null);
     }
-  }, [id, selectedLanguage]);
+  }, [id, selectedLanguage, problems]);
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setSelectedLanguage(newLang);
-    setCode(currentProblem.starterCode[newLang]);
+    if (currentProblem?.starterCode?.[newLang]) {
+      setCode(currentProblem.starterCode[newLang]);
+    }
     setOutput(null);
   };
 
@@ -106,6 +111,24 @@ function ProblemPage() {
     }
   };
 
+  if (!currentProblem) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="page-wrap">
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="ca-panel p-8 text-center">
+              <p className="text-lg font-semibold">No problem found</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please refresh or select a valid problem.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <Navbar />
@@ -118,11 +141,11 @@ function ProblemPage() {
               problem={currentProblem}
               currentProblemId={currentProblemId}
               onProblemChange={handleProblemChange}
-              allProblems={Object.values(PROBLEMS)}
+              allProblems={Object.values(problems)}
             />
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-white/5 hover:bg-white/10 transition-colors cursor-col-resize" />
+          <PanelResizeHandle className="w-2 ca-resize-handle transition-colors cursor-col-resize" />
 
           {/* right panel- code editor & output */}
           <Panel defaultSize={60} minSize={30}>
@@ -139,7 +162,7 @@ function ProblemPage() {
                 />
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-white/5 hover:bg-white/10 transition-colors cursor-row-resize" />
+              <PanelResizeHandle className="h-2 ca-resize-handle transition-colors cursor-row-resize" />
 
               {/* Bottom panel - Output Panel*/}
 

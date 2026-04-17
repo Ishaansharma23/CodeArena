@@ -61,7 +61,7 @@ function InterviewPage() {
               <h2 className="text-2xl font-black">Start Interview</h2>
               <div className="flex flex-col md:flex-row gap-4 items-center">
                 <select
-                  className="select w-full md:max-w-lg"
+                  className="ca-input w-full md:max-w-lg"
                   value={resumeId}
                   onChange={(event) => setResumeId(event.target.value)}
                 >

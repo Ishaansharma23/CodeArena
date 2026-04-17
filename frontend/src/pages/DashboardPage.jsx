@@ -55,7 +55,7 @@ function DashboardPage() {
     <>
       <div className="min-h-screen">
         <Navbar />
-        <div className="page-wrap">
+        <div className="page-wrap dashboard-grid">
           <WelcomeSection onCreateSession={() => setShowCreateModal(true)} />
 
           <div className="container mx-auto px-6 pb-16">

@@ -543,7 +543,7 @@ function LiveInterviewPage() {
           <div className="space-y-4">
             <div className="interview-panel relative overflow-hidden aspect-video">
               <AiAvatar isSpeaking={isSpeaking} text={subtitles} />
-              <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-white/70">
+              <div className="absolute left-4 top-4 rounded-full bg-[rgba(20,20,20,0.8)] px-3 py-1 text-xs uppercase tracking-[0.28em] text-[var(--text-secondary)] backdrop-blur">
                 AI Interviewer
               </div>
               <div className="absolute inset-x-6 bottom-5 rounded-2xl bg-black/50 px-4 py-3 text-sm text-slate-100 shadow-lg backdrop-blur">
@@ -559,8 +559,8 @@ function LiveInterviewPage() {
                     key={`${message.role}-${index}`}
                     className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
                       message.role === "assistant"
-                        ? "bg-white/5 border border-white/10"
-                        : "bg-white/10 border border-white/10"
+                        ? "bg-[rgba(20,20,20,0.6)] border border-[var(--border-subtle)]"
+                        : "bg-[rgba(20,20,20,0.8)] border border-[var(--border-subtle)]"
                     }`}
                   >
                     <span className="block text-[11px] uppercase tracking-[0.24em] text-slate-400">
@@ -599,7 +599,7 @@ function LiveInterviewPage() {
                   )}
                 </>
               )}
-              <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-white/70">
+              <div className="absolute left-4 top-4 rounded-full bg-[rgba(20,20,20,0.8)] px-3 py-1 text-xs uppercase tracking-[0.28em] text-[var(--text-secondary)] backdrop-blur">
                 You
               </div>
             </div>
@@ -655,7 +655,7 @@ function LiveInterviewPage() {
                 <p className="text-xs text-[var(--text-secondary)]">Listening: {liveTranscript}</p>
               )}
               <textarea
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="ca-input w-full text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-white/30"
                 rows={4}
                 placeholder={isComplete ? "Interview complete. End to view report." : "Type your answer..."}
                 value={answer}

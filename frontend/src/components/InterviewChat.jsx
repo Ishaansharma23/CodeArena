@@ -57,8 +57,8 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
   };
 
   return (
-    <div className="card bg-base-100 border-2 border-secondary/20">
-      <div className="card-body h-full">
+    <div className="ca-panel h-full">
+      <div className="h-full p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-black">AI Interview</h2>
           <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
 
         <div className="mt-4 flex flex-col gap-2">
           <textarea
-            className="textarea textarea-bordered w-full"
+            className="ca-input w-full"
             rows={3}
             placeholder={isComplete ? "Interview complete. End to view report." : "Type your answer..."}
             value={input}

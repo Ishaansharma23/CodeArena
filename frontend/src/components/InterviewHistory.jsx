@@ -53,7 +53,7 @@ function InterviewHistory() {
             {visibleInterviews.map((interview, index) => (
                 <div
                   key={interview._id}
-                  className={`card bg-base-200 border border-[var(--border-subtle)] transition-all duration-300 ${
+                  className={`ca-panel transition-all duration-300 ${
                     removingIds.includes(interview._id)
                       ? "opacity-0 translate-y-2 scale-[0.98]"
                       : "opacity-100"
@@ -61,7 +61,7 @@ function InterviewHistory() {
                   data-reveal
                   style={{ transitionDelay: `${index * 0.04}s` }}
                 >
-                  <div className="card-body p-5 space-y-4">
+                  <div className="p-5 space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold text-lg">Interview Summary</h3>
@@ -81,14 +81,14 @@ function InterviewHistory() {
                       </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-xs opacity-80">
-                      <span className="badge">Questions: {interview.questionCount ?? 0}</span>
-                      <span className="badge">Technical {formatScore(interview.report?.technicalScore)}</span>
-                      <span className="badge">DSA {formatScore(interview.report?.dsaScore)}</span>
-                      <span className="badge">Comms {formatScore(interview.report?.communicationScore)}</span>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="ca-chip">Questions: {interview.questionCount ?? 0}</span>
+                      <span className="ca-chip">Technical {formatScore(interview.report?.technicalScore)}</span>
+                      <span className="ca-chip">DSA {formatScore(interview.report?.dsaScore)}</span>
+                      <span className="ca-chip">Comms {formatScore(interview.report?.communicationScore)}</span>
                     </div>
 
-                    <div className="bg-base-100 rounded-xl p-3 text-sm opacity-80">
+                    <div className="ca-panel-soft p-3 text-sm text-[var(--text-secondary)]">
                       {interview.report?.summary || "Report summary not available."}
                     </div>
 

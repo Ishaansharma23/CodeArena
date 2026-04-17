@@ -34,7 +34,7 @@ function ResumeUpload({ onUpload, isUploading, resume }) {
               <div className="flex flex-wrap gap-2 mt-2">
                 {resume.skills?.length ? (
                   resume.skills.map((skill) => (
-                    <span key={skill} className="badge">
+                    <span key={skill} className="ca-chip">
                       {skill}
                     </span>
                   ))
@@ -49,7 +49,7 @@ function ResumeUpload({ onUpload, isUploading, resume }) {
               <div className="flex flex-wrap gap-2 mt-2">
                 {resume.techStack?.length ? (
                   resume.techStack.map((tech) => (
-                    <span key={tech} className="badge">
+                    <span key={tech} className="ca-chip">
                       {tech}
                     </span>
                   ))

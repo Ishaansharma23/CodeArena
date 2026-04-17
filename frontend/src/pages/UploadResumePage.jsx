@@ -59,10 +59,10 @@ function UploadResumePage() {
                   {resumes.map((resume) => (
                     <button
                       key={resume._id}
-                      className={`w-full text-left p-3 rounded-lg border transition ${
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
                         selectedResume?._id === resume._id
-                          ? "border-white/40 bg-white/5"
-                          : "border-white/10 hover:border-white/30"
+                          ? "border-[var(--border-hover)] bg-[var(--bg-secondary)]"
+                          : "border-[var(--border-subtle)] hover:border-[var(--border-hover)]"
                       }`}
                       onClick={() => setSelectedResume(resume)}
                     >

@@ -33,7 +33,7 @@ function AiAvatar({ isSpeaking, text }) {
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[rgba(20,20,20,0.8)] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-[var(--text-secondary)] backdrop-blur">
         {statusText} • {subtitlePreview}
       </div>
     </div>

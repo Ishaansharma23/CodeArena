@@ -27,7 +27,7 @@ function CreateSessionModal({
             </label>
 
             <select
-              className="select w-full"
+              className="ca-input w-full"
               value={roomConfig.problem}
               onChange={(e) => {
                 const selectedProblem = problems.find((p) => p.title === e.target.value);
@@ -55,7 +55,7 @@ function CreateSessionModal({
               <span className="label-text font-semibold">Max Participants</span>
             </label>
             <select
-              className="select w-full"
+              className="ca-input w-full"
               value={roomConfig.maxParticipants || 2}
               onChange={(e) =>
                 setRoomConfig((prev) => ({
@@ -72,7 +72,7 @@ function CreateSessionModal({
 
           {/* ROOM SUMMARY */}
           {roomConfig.problem && (
-            <div className="border border-[var(--border-subtle)] rounded-2xl p-4 bg-white/5">
+            <div className="ca-panel-soft p-4">
               <div className="flex items-center gap-3">
                 <Code2Icon className="size-5" />
                 <div>
