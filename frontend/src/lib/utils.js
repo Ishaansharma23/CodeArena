@@ -1,12 +1,12 @@
 export const getDifficultyBadgeClass = (difficulty) => {
   switch (difficulty?.toLowerCase()) {
     case "easy":
-      return "badge-success";
+      return "ca-badge ca-badge-easy";
     case "medium":
-      return "badge-warning";
+      return "ca-badge ca-badge-medium";
     case "hard":
-      return "badge-error";
+      return "ca-badge ca-badge-hard";
     default:
-      return "badge-ghost";
+      return "ca-badge";
   }
 };

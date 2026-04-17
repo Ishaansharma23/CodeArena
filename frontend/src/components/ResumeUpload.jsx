@@ -10,12 +10,12 @@ function ResumeUpload({ onUpload, isUploading, resume }) {
   };
 
   return (
-    <div className="card bg-base-100 border-2 border-primary/20">
+    <div className="card" data-reveal>
       <div className="card-body">
         <h2 className="text-2xl font-black">Upload Resume</h2>
         <p className="text-sm opacity-70">PDF only. We will parse skills and projects.</p>
 
-        <label className="btn btn-primary w-fit mt-4">
+        <label className="btn btn-primary w-fit mt-4" data-ripple>
           <UploadCloudIcon className="size-4" />
           <span>{isUploading ? "Uploading..." : "Choose PDF"}</span>
           <input
@@ -34,7 +34,7 @@ function ResumeUpload({ onUpload, isUploading, resume }) {
               <div className="flex flex-wrap gap-2 mt-2">
                 {resume.skills?.length ? (
                   resume.skills.map((skill) => (
-                    <span key={skill} className="badge badge-outline">
+                    <span key={skill} className="badge">
                       {skill}
                     </span>
                   ))
@@ -49,7 +49,7 @@ function ResumeUpload({ onUpload, isUploading, resume }) {
               <div className="flex flex-wrap gap-2 mt-2">
                 {resume.techStack?.length ? (
                   resume.techStack.map((tech) => (
-                    <span key={tech} className="badge badge-secondary badge-outline">
+                    <span key={tech} className="badge">
                       {tech}
                     </span>
                   ))

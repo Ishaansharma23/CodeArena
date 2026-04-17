@@ -72,16 +72,18 @@ function CreateSessionModal({
 
           {/* ROOM SUMMARY */}
           {roomConfig.problem && (
-            <div className="alert alert-success">
-              <Code2Icon className="size-5" />
-              <div>
-                <p className="font-semibold">Room Summary:</p>
-                <p>
-                  Problem: <span className="font-medium">{roomConfig.problem}</span>
-                </p>
-                <p>
-                  Max Participants: <span className="font-medium">{roomConfig.maxParticipants || 2}</span>
-                </p>
+            <div className="border border-[var(--border-subtle)] rounded-2xl p-4 bg-white/5">
+              <div className="flex items-center gap-3">
+                <Code2Icon className="size-5" />
+                <div>
+                  <p className="font-semibold">Room Summary</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Problem: <span className="text-white/90">{roomConfig.problem}</span>
+                  </p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Max Participants: <span className="text-white/90">{roomConfig.maxParticipants || 2}</span>
+                  </p>
+                </div>
               </div>
             </div>
           )}

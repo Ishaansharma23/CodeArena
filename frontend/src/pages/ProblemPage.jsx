@@ -107,10 +107,10 @@ function ProblemPage() {
   };
 
   return (
-    <div className="h-screen bg-base-100 flex flex-col">
+    <div className="h-screen flex flex-col">
       <Navbar />
 
-      <div className="flex-1">
+      <div className="page-wrap flex-1">
         <PanelGroup direction="horizontal">
           {/* left panel- problem desc */}
           <Panel defaultSize={40} minSize={30}>
@@ -122,7 +122,7 @@ function ProblemPage() {
             />
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <PanelResizeHandle className="w-2 bg-white/5 hover:bg-white/10 transition-colors cursor-col-resize" />
 
           {/* right panel- code editor & output */}
           <Panel defaultSize={60} minSize={30}>
@@ -139,7 +139,7 @@ function ProblemPage() {
                 />
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <PanelResizeHandle className="h-2 bg-white/5 hover:bg-white/10 transition-colors cursor-row-resize" />
 
               {/* Bottom panel - Output Panel*/}
 

@@ -3,15 +3,12 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import toast from "react-hot-toast";
 import {
   Loader2Icon,
-  Mic2Icon,
   MicIcon,
   MicOffIcon,
   PhoneOffIcon,
   SendIcon,
   VideoIcon,
   VideoOffIcon,
-  Volume2Icon,
-  VolumeXIcon,
 } from "lucide-react";
 
 import AiAvatar from "../components/AiAvatar";
@@ -56,6 +53,7 @@ function LiveInterviewPage() {
   const [subtitles, setSubtitles] = useState(initialQuestion);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [voiceUnlocked, setVoiceUnlocked] = useState(false);
+  const [aiStarted, setAiStarted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceAgentEnabled, setVoiceAgentEnabled] = useState(true);
   const [hasVoiceGesture, setHasVoiceGesture] = useState(false);
@@ -89,12 +87,7 @@ function LiveInterviewPage() {
       return;
     }
 
-    if (voiceEnabled) {
-      setVoiceEnabled(false);
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
+    if (voiceEnabled) return;
 
     if (voiceUnlocked || voiceUnlockedRef.current) {
       setVoiceEnabled(true);
@@ -143,7 +136,7 @@ function LiveInterviewPage() {
       setVoiceEnabled(false);
       setIsVoiceBlocked(true);
       if (!hasShownVoiceBlockedToastRef.current) {
-        toast.error("AI voice was blocked by browser. Click Voice once to enable audio.");
+        toast.error("AI voice was blocked by browser. Click Start AI Interview to enable audio.");
         hasShownVoiceBlockedToastRef.current = true;
       }
     };
@@ -197,7 +190,7 @@ function LiveInterviewPage() {
       const blockedErrors = ["not-allowed", "service-not-allowed"];
       const nonFatal = ["no-speech", "audio-capture", "aborted"];
       if (blockedErrors.includes(event.error)) {
-        setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+        setVoiceError("Microphone permission is blocked. Click Start AI Interview to retry.");
         setVoiceAgentEnabled(false);
         shouldRestartRecognitionRef.current = false;
       }
@@ -216,7 +209,7 @@ function LiveInterviewPage() {
             recognition.start();
           } catch {
             recognitionRef.current = null;
-            setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+            setVoiceError("Microphone permission is blocked. Click Start AI Interview to retry.");
             setVoiceAgentEnabled(false);
           }
         }, 240);
@@ -228,28 +221,12 @@ function LiveInterviewPage() {
     return recognition;
   };
 
-  const handleVoiceAgentToggle = () => {
+  const handleAiStart = () => {
+    if (aiStarted) return;
+    setAiStarted(true);
     setHasVoiceGesture(true);
-    setVoiceError("");
-    setLiveTranscript("");
-    setVoiceAgentEnabled((prev) => {
-      const next = !prev;
-      if (next && SpeechRecognition && !recognitionRef.current) {
-        const recognition = createRecognitionInstance();
-        if (recognition) {
-          recognitionRef.current = recognition;
-          shouldRestartRecognitionRef.current = true;
-          try {
-            recognition.start();
-          } catch {
-            setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
-            recognitionRef.current = null;
-            shouldRestartRecognitionRef.current = false;
-          }
-        }
-      }
-      return next;
-    });
+    setVoiceAgentEnabled(true);
+    enableVoice();
   };
 
   const assistantCount = useMemo(
@@ -368,7 +345,7 @@ function LiveInterviewPage() {
         setIsSpeaking(false);
         setIsVoiceBlocked(true);
         if (!hasShownVoiceBlockedToastRef.current) {
-          toast.error("AI voice was blocked by browser. Click Voice once to enable audio.");
+          toast.error("AI voice was blocked by browser. Click Start AI Interview to enable audio.");
           hasShownVoiceBlockedToastRef.current = true;
         }
       };
@@ -490,7 +467,7 @@ function LiveInterviewPage() {
       recognition.start();
     } catch {
       recognitionRef.current = null;
-      setVoiceError("Microphone permission is blocked. Click AI Listen On to retry.");
+      setVoiceError("Microphone permission is blocked. Click Start AI Interview to retry.");
       setVoiceAgentEnabled(false);
     }
 
@@ -518,6 +495,7 @@ function LiveInterviewPage() {
   ]);
 
   const recentMessages = messages.slice(-4);
+  const isProcessing = submitMutation.isPending;
   const showLoading = !currentQuestion && (interviewLoading || !messages.length);
 
   useEffect(() => {
@@ -533,25 +511,29 @@ function LiveInterviewPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-8 space-y-6 animate-fade-in">
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.4em] text-emerald-200/70">AI Video Interview</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-[var(--text-secondary)]">AI Video Interview</p>
             <h1 className="text-3xl font-semibold text-white">Live Interview Session</h1>
             <p className="text-sm text-slate-300">Stage: {stageLabel}</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="interview-panel px-4 py-2">
-              <p className="text-xs uppercase tracking-[0.32em] text-emerald-200/60">Timer</p>
+              <p className="text-xs uppercase tracking-[0.32em] text-[var(--text-secondary)]">Timer</p>
               <p className="text-lg font-semibold text-white">{formatDuration(timerSeconds)}</p>
             </div>
             <div className="interview-panel px-4 py-2">
-              <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/60">Status</p>
+              <p className="text-xs uppercase tracking-[0.32em] text-[var(--text-secondary)]">Status</p>
               <p className="text-sm text-slate-200">
-                {isSpeaking
-                  ? "AI Speaking..."
-                  : isListening
-                    ? "Listening..."
-                    : isComplete
-                      ? "Complete"
-                      : "In Progress"}
+                {isProcessing
+                  ? "Processing..."
+                  : isSpeaking
+                    ? "AI Speaking..."
+                    : isListening
+                      ? "Listening..."
+                      : isComplete
+                        ? "Complete"
+                        : aiStarted
+                          ? "Live"
+                          : "Ready"}
               </p>
             </div>
           </div>
@@ -561,7 +543,7 @@ function LiveInterviewPage() {
           <div className="space-y-4">
             <div className="interview-panel relative overflow-hidden aspect-video">
               <AiAvatar isSpeaking={isSpeaking} text={subtitles} />
-              <div className="absolute left-4 top-4 rounded-full bg-emerald-500/20 px-3 py-1 text-xs uppercase tracking-[0.28em] text-emerald-200">
+              <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-white/70">
                 AI Interviewer
               </div>
               <div className="absolute inset-x-6 bottom-5 rounded-2xl bg-black/50 px-4 py-3 text-sm text-slate-100 shadow-lg backdrop-blur">
@@ -577,7 +559,7 @@ function LiveInterviewPage() {
                     key={`${message.role}-${index}`}
                     className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
                       message.role === "assistant"
-                        ? "bg-emerald-500/10 border border-emerald-400/20"
+                        ? "bg-white/5 border border-white/10"
                         : "bg-white/10 border border-white/10"
                     }`}
                   >
@@ -617,34 +599,50 @@ function LiveInterviewPage() {
                   )}
                 </>
               )}
-              <div className="absolute left-4 top-4 rounded-full bg-cyan-500/20 px-3 py-1 text-xs uppercase tracking-[0.28em] text-cyan-200">
+              <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-white/70">
                 You
               </div>
             </div>
 
             <div className="interview-panel px-5 py-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.32em] text-slate-400">Your Response</p>
-                {SpeechRecognition && (
-                  <button
-                    className={`text-xs uppercase tracking-[0.28em] transition ${
-                      voiceAgentEnabled ? "text-emerald-200" : "text-slate-400"
-                    }`}
-                    onClick={handleVoiceAgentToggle}
-                  >
-                    {!hasVoiceGesture
-                      ? "Voice Agent: Click to Start"
-                      : voiceAgentEnabled
-                        ? isListening
-                          ? "Voice Agent: Listening"
-                          : "Voice Agent: Ready"
-                        : "Voice Agent: Off"}
-                  </button>
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-400">AI Interviewer</p>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleAiStart}
+                  disabled={aiStarted || !speechSupported}
+                >
+                  {aiStarted ? "AI Live" : "Start AI Interview"}
+                </button>
+              </div>
+              {!aiStarted && (
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Click Start to enable voice, then speak naturally. The AI will respond and loop.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {isProcessing && (
+                  <div className="ai-indicator">
+                    <Loader2Icon className="size-3 animate-spin" /> Processing
+                  </div>
+                )}
+                {isSpeaking && (
+                  <div className="ai-indicator">
+                    <span className="ai-wave">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                    Speaking
+                  </div>
+                )}
+                {isListening && (
+                  <div className="ai-indicator">
+                    <span className="ai-pulse" /> Listening
+                  </div>
                 )}
               </div>
-              {!voiceEnabled && (
-                <p className="text-xs text-emerald-200">Click Voice once to enable AI speech.</p>
-              )}
               {voiceError && (
                 <p className="text-xs text-rose-200">{voiceError}</p>
               )}
@@ -654,10 +652,10 @@ function LiveInterviewPage() {
                 </p>
               )}
               {SpeechRecognition && liveTranscript && (
-                <p className="text-xs text-emerald-200">Listening: {liveTranscript}</p>
+                <p className="text-xs text-[var(--text-secondary)]">Listening: {liveTranscript}</p>
               )}
               <textarea
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-white/30"
                 rows={4}
                 placeholder={isComplete ? "Interview complete. End to view report." : "Type your answer..."}
                 value={answer}
@@ -673,11 +671,11 @@ function LiveInterviewPage() {
               <div className="flex items-center justify-between">
                 <p className="text-xs text-slate-400">
                   {isVoiceBlocked
-                    ? "Voice blocked by browser. Click Voice button once to enable sound."
+                    ? "Voice blocked by browser. Click Start AI Interview once to enable sound."
                     : "AI follows up based on your response quality."}
                 </p>
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-2 text-xs uppercase tracking-[0.28em] text-emerald-200 transition hover:bg-emerald-500/30"
+                  className="btn btn-primary btn-sm"
                   onClick={handleSend}
                   disabled={submitMutation.isPending || isComplete}
                 >
@@ -704,24 +702,6 @@ function LiveInterviewPage() {
             {cameraEnabled ? <VideoIcon className="size-5" /> : <VideoOffIcon className="size-5" />}
             <span>{cameraEnabled ? "Camera" : "Camera Off"}</span>
           </button>
-          {speechSupported && (
-            <button
-              className={`control-btn ${voiceEnabled ? "control-btn-on" : "control-btn-off"}`}
-             onClick={enableVoice}
-            >
-              {voiceEnabled ? <Volume2Icon className="size-5" /> : <VolumeXIcon className="size-5" />}
-              <span>{voiceEnabled ? "Voice On" : "Enable Voice"}</span>
-            </button>
-          )}
-          {SpeechRecognition && (
-            <button
-              className={`control-btn ${voiceAgentEnabled ? "control-btn-on" : "control-btn-off"}`}
-              onClick={handleVoiceAgentToggle}
-            >
-              <Mic2Icon className="size-5" />
-              <span>{voiceAgentEnabled ? "AI Listen On" : "AI Listen Off"}</span>
-            </button>
-          )}
           <button className="control-btn control-btn-danger" onClick={handleEnd}>
             <PhoneOffIcon className="size-5" />
             <span>{endMutation.isPending ? "Ending" : "End Interview"}</span>
@@ -732,7 +712,7 @@ function LiveInterviewPage() {
       {showLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0b0f14]/80 backdrop-blur">
           <div className="interview-panel px-8 py-6 text-center">
-            <Loader2Icon className="mx-auto mb-3 h-8 w-8 animate-spin text-emerald-300" />
+            <Loader2Icon className="mx-auto mb-3 h-8 w-8 animate-spin text-white/70" />
             <p className="text-sm text-slate-200">Preparing your interview space...</p>
           </div>
         </div>
@@ -741,7 +721,7 @@ function LiveInterviewPage() {
       {endPayload && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#0b0f14]/85 backdrop-blur">
           <div className="interview-panel max-w-lg px-8 py-8 text-center space-y-4">
-            <p className="text-xs uppercase tracking-[0.4em] text-emerald-200/70">Interview Ended</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-[var(--text-secondary)]">Interview Ended</p>
             <h2 className="text-2xl font-semibold text-white">Great work today!</h2>
             <p className="text-sm text-slate-300">
               {endPayload?.report?.summary || "Your interview report is ready."}

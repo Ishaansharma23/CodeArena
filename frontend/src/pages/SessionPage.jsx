@@ -96,10 +96,10 @@ function SessionPage() {
   };
 
   return (
-    <div className="h-screen bg-base-100 flex flex-col">
+    <div className="h-screen flex flex-col">
       <Navbar />
 
-      <div className="flex-1">
+      <div className="page-wrap flex-1">
         <PanelGroup direction="horizontal">
           {/* LEFT PANEL - CODE EDITOR & PROBLEM DETAILS */}
           <Panel defaultSize={50} minSize={30}>
@@ -183,13 +183,13 @@ function SessionPage() {
                               </div>
                               <div className="bg-base-200 rounded-lg p-4 font-mono text-sm space-y-1.5">
                                 <div className="flex gap-2">
-                                  <span className="text-primary font-bold min-w-[70px]">
+                                  <span className="text-white/70 font-bold min-w-[70px]">
                                     Input:
                                   </span>
                                   <span>{example.input}</span>
                                 </div>
                                 <div className="flex gap-2">
-                                  <span className="text-secondary font-bold min-w-[70px]">
+                                  <span className="text-white/70 font-bold min-w-[70px]">
                                     Output:
                                   </span>
                                   <span>{example.output}</span>
@@ -216,7 +216,7 @@ function SessionPage() {
                         <ul className="space-y-2 text-base-content/90">
                           {problemData.constraints.map((constraint, idx) => (
                             <li key={idx} className="flex gap-2">
-                              <span className="text-primary">•</span>
+                              <span className="text-white/60">•</span>
                               <code className="text-sm">{constraint}</code>
                             </li>
                           ))}
@@ -227,7 +227,7 @@ function SessionPage() {
                 </div>
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <PanelResizeHandle className="h-2 bg-white/5 hover:bg-white/10 transition-colors cursor-row-resize" />
 
               <Panel defaultSize={50} minSize={20}>
                 <PanelGroup direction="vertical">
@@ -242,7 +242,7 @@ function SessionPage() {
                     />
                   </Panel>
 
-                  <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+                  <PanelResizeHandle className="h-2 bg-white/5 hover:bg-white/10 transition-colors cursor-row-resize" />
 
                   <Panel defaultSize={30} minSize={15}>
                     <OutputPanel output={output} />
@@ -252,7 +252,7 @@ function SessionPage() {
             </PanelGroup>
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <PanelResizeHandle className="w-2 bg-white/5 hover:bg-white/10 transition-colors cursor-col-resize" />
 
           {/* RIGHT PANEL - VIDEO CALLS & CHAT */}
           <Panel defaultSize={50} minSize={30}>
@@ -260,7 +260,7 @@ function SessionPage() {
               {isInitializingCall ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
-                    <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
+                    <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-white/70 mb-4" />
                     <p className="text-lg">Connecting to video call...</p>
                   </div>
                 </div>

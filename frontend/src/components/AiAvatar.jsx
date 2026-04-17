@@ -15,7 +15,7 @@ function AiAvatar({ isSpeaking, text }) {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="absolute -inset-12 rounded-[36px] bg-gradient-to-br from-emerald-400/18 via-cyan-300/12 to-transparent blur-3xl opacity-90" />
+      <div className="absolute -inset-12 rounded-[36px] bg-gradient-to-br from-white/12 via-white/6 to-transparent blur-3xl opacity-90" />
 
       <div className="avatar-silhouette" />
 
@@ -33,7 +33,7 @@ function AiAvatar({ isSpeaking, text }) {
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-emerald-200/80 backdrop-blur">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
         {statusText} • {subtitlePreview}
       </div>
     </div>
