@@ -2,7 +2,7 @@
 
 Where Code Meets Competition.
 
-![CodeArena UI](/frontend/public/screenshot-for-readme.png)
+![CodeArena UI](/frontend/public/CodeArena.png)
 
 ## Overview
 
