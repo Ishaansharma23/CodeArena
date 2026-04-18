@@ -19,7 +19,7 @@ function AiAvatar({ isSpeaking, text }) {
 
       <div className="avatar-silhouette" />
 
-      <div className="relative z-10 w-[76%] aspect-[0.82] rounded-[45%] bg-gradient-to-b from-slate-100/95 via-slate-200/85 to-slate-300/80 p-[3px] animate-avatar-float">
+      <div className="relative z-10 w-36 sm:w-44 md:w-52 aspect-[0.82] rounded-[45%] bg-gradient-to-b from-slate-100/95 via-slate-200/85 to-slate-300/80 p-[3px] animate-avatar-float">
         <div className="w-full h-full rounded-[45%] bg-gradient-to-b from-[#0f1723] to-[#070d14] flex items-center justify-center">
           <div className="w-[74%] h-[76%] flex flex-col items-center justify-center gap-6">
             <div className="avatar-brow" />
