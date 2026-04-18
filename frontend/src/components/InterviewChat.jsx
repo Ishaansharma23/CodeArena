@@ -4,24 +4,36 @@ import { MicIcon, SendIcon, StopCircleIcon, Volume2Icon } from "lucide-react";
 function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true); // 🔥 default ON
   const lastSpokenRef = useRef("");
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const speechSupported = Boolean(SpeechRecognition);
   const ttsSupported = "speechSynthesis" in window;
 
+  // 🔥 FIXED AI SPEAKING
   useEffect(() => {
+    if (!ttsEnabled || !ttsSupported || !messages.length) return;
+
     const lastMessage = messages[messages.length - 1];
-    if (!ttsEnabled || !ttsSupported || !lastMessage) return;
+
     if (lastMessage.role !== "assistant") return;
-    if (lastMessage.content === lastSpokenRef.current) return;
+
+    // 🔥 FORCE speak even if similar (avoid skip bug)
+    window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(lastMessage.content);
-    window.speechSynthesis.cancel();
+
+    utterance.onstart = () => {
+      setIsListening(false); // stop mic when AI speaks
+    };
+
+    utterance.onend = () => {
+      lastSpokenRef.current = lastMessage.content;
+    };
+
     window.speechSynthesis.speak(utterance);
-    lastSpokenRef.current = lastMessage.content;
-  }, [messages, ttsEnabled, ttsSupported]);
+  }, [messages]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -38,6 +50,7 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
 
   const handleVoiceInput = () => {
     if (!speechSupported || isListening) return;
+
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
@@ -46,6 +59,7 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     recognition.onerror = () => setIsListening(false);
+
     recognition.onresult = (event) => {
       const transcript = event.results?.[0]?.[0]?.transcript || "";
       if (transcript) {
@@ -59,8 +73,10 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
   return (
     <div className="ca-panel h-full">
       <div className="h-full p-5 flex flex-col">
+        
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-black">AI Interview</h2>
+
           <div className="flex items-center gap-2">
             {ttsSupported && (
               <button
@@ -71,6 +87,7 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
                 {ttsEnabled ? "Voice On" : "Voice Off"}
               </button>
             )}
+
             <button className="btn btn-error btn-sm" onClick={onEnd}>
               <StopCircleIcon className="size-4" />
               End
@@ -78,13 +95,20 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
           </div>
         </div>
 
+        {/* 🔥 TRANSCRIPT FIXED */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[420px]">
-          {messages.map((message, index) => (
+          {messages.map((message) => (
             <div
-              key={`${message.role}-${index}`}
+              key={message._id || message.content} // 🔥 FIXED KEY
               className={`chat ${message.role === "assistant" ? "chat-start" : "chat-end"}`}
             >
-              <div className={`chat-bubble ${message.role === "assistant" ? "chat-bubble-primary" : "chat-bubble"}`}>
+              <div
+                className={`chat-bubble ${
+                  message.role === "assistant"
+                    ? "chat-bubble-primary"
+                    : "chat-bubble"
+                }`}
+              >
                 {message.content}
               </div>
             </div>
@@ -101,6 +125,7 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
             onKeyDown={handleKeyDown}
             disabled={isComplete || isSending}
           />
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {speechSupported && (
@@ -113,7 +138,12 @@ function InterviewChat({ messages, onSend, onEnd, isSending, isComplete }) {
                 </button>
               )}
             </div>
-            <button className="btn btn-primary btn-sm" onClick={handleSend} disabled={isSending || isComplete}>
+
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSend}
+              disabled={isSending || isComplete}
+            >
               <SendIcon className="size-4" />
               {isSending ? "Sending..." : "Send"}
             </button>
