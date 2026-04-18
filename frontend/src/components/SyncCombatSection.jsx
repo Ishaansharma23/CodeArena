@@ -1,106 +1,95 @@
 import { CheckCircle2Icon } from "lucide-react";
 
 const POINTS = [
-  "Sub-30ms cursor synchronization",
-  "Shared runtime with deterministic merges",
-  "Voice and video in the same arena",
+  "Resume parsing with deep skill extraction",
+  "AI-generated technical interview questions",
+  "Real-time evaluation & feedback",
+  "Communication & stress analysis",
 ];
 
-const CODE_LINES = [
-  {
-    key: "l1",
-    content: (
-      <>
-        <span className="text-white">function</span> syncArena(peers) {"{"}
-      </>
-    ),
-  },
-  {
-    key: "l2",
-    content: (
-      <>
-        {"  "}
-        <span className="text-white">const</span> payload = {"{"}
-      </>
-    ),
-  },
-  {
-    key: "l3",
-    content: <>{"    "}revision: peers.active.rev,</>,
-  },
-  {
-    key: "l4",
-    content: <>{"    "}cursor: peers.active.cursor,</>,
-  },
-  {
-    key: "l5",
-    content: <>{"    "}delta: peers.buffer.flush(),</>,
-  },
-  {
-    key: "l6",
-    content: <>{"  "}{"}"};</>,
-  },
-  {
-    key: "l7",
-    content: (
-      <>
-        {"  "}
-        <span className="text-white">return</span> arena.push(payload);
-      </>
-    ),
-  },
-  {
-    key: "l8",
-    content: <>{"}"}</>,
-  },
+const CHAT = [
+  { role: "AI", text: "Explain time complexity of binary search." },
+  { role: "YOU", text: "It is O(log n) because search space halves each step." },
+  { role: "AI", text: "Correct. Can you optimize further for edge cases?" },
 ];
 
-function SyncCombatSection() {
+function AIInterviewSection() {
   return (
-    <section className="relative">
-      <div className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-12 items-center">
-        <div className="space-y-6" data-reveal>
-          <h2 className="text-4xl md:text-5xl font-extrabold uppercase text-white">
-            REAL-TIME COLLABORATION
+    <section className="relative bg-gradient-to-br from-[#05070a] to-[#0b1220]">
+
+      <div className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-14 items-center">
+
+        {/* LEFT CONTENT */}
+        <div className="space-y-6">
+
+          <h2 className="text-4xl md:text-5xl font-extrabold">
+            AI Interview Engine
           </h2>
-          <p className="text-lg text-gray-300">
-            Every keystroke, cursor, and runtime result stays in lockstep. Build together with
-            precision-grade latency and zero context loss.
+
+          <p className="text-lg text-gray-400">
+            Upload your resume and let AI simulate real-world technical interviews.
+            Get evaluated on problem-solving, communication, and thinking ability.
           </p>
+
+          {/* POINTS */}
           <div className="space-y-3">
             {POINTS.map((point) => (
               <div key={point} className="flex items-center gap-3 text-sm text-gray-300">
-                <CheckCircle2Icon className="h-5 w-5 text-white/80" />
+                <CheckCircle2Icon className="h-5 w-5 text-blue-400" />
                 <span>{point}</span>
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="rounded-3xl border border-white/10 bg-[#0b0f14]/80 p-5 backdrop-blur" data-reveal>
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white/20" />
-              <span className="h-2 w-2 rounded-full bg-white/20" />
-              <span className="h-2 w-2 rounded-full bg-white/20" />
-            </div>
-            <span className="font-mono">arena-core.js</span>
+          {/* CHAT UI */}
+          <div className="mt-6 rounded-xl border border-white/10 bg-[#0b0f14] p-4 space-y-3">
+            {CHAT.map((msg, i) => (
+              <div key={i}>
+                <p className={`text-xs mb-1 ${msg.role === "AI" ? "text-blue-400" : "text-green-400"}`}>
+                  {msg.role}:
+                </p>
+                <p className="text-sm text-white/90">{msg.text}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="mt-4">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f16] p-4">
-              <div className="absolute left-12 right-4 top-[96px] h-6 rounded-md bg-white/10 border-l-2 border-white/50" />
-              <div className="absolute left-[198px] top-[100px] h-5 w-[2px] bg-white/70 home-cursor" />
+        </div>
 
-              <div className="relative font-mono text-sm leading-6 text-gray-300">
-                {CODE_LINES.map((line, index) => (
-                  <div key={line.key} className="flex items-start gap-4">
-                    <span className="w-6 text-right text-gray-500">{index + 1}</span>
-                    <span>{line.content}</span>
-                  </div>
-                ))}
-              </div>
+        {/* RIGHT SIDE (CODE UI STYLE SAME) */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+
+          {/* HEADER */}
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex gap-2">
+              <span className="h-2 w-2 rounded-full bg-red-400/70" />
+              <span className="h-2 w-2 rounded-full bg-yellow-400/70" />
+              <span className="h-2 w-2 rounded-full bg-green-400/70" />
             </div>
+            <span className="font-mono">Lets Code!</span>
+          </div>
+
+          {/* CODE BOX */}
+          <div className="mt-4 rounded-2xl border border-blue-400/30 bg-[#0f172a] p-4 relative">
+
+            {/* Cursor */}
+            <div className="absolute left-[185px] top-[17px] h-5 w-[2px] bg-blue-400 animate-pulse" />
+
+            <pre className="text-sm text-gray-200 font-mono leading-6">
+{`function startInterview(candidate) {
+  const resume = parse(candidate.resume);
+
+  const questions = AI.generate({
+    skills: resume.skills,
+    difficulty: "adaptive"
+  });
+
+  return interview.begin({
+    questions,
+    realtimeFeedback: true
+  });
+}`}
+            </pre>
+
           </div>
         </div>
       </div>
@@ -108,4 +97,4 @@ function SyncCombatSection() {
   );
 }
 
-export default SyncCombatSection;
+export default AIInterviewSection;

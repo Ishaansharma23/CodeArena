@@ -49,6 +49,17 @@ function App() {
       return undefined;
     }
 
+    const revealInView = () => {
+      const viewportHeight = window.innerHeight || 0;
+      document.querySelectorAll("[data-reveal]").forEach((element) => {
+        const rect = element.getBoundingClientRect();
+        const inView = rect.top < viewportHeight * 0.9 && rect.bottom > 0;
+        if (inView) {
+          element.classList.add("is-visible");
+        }
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -77,18 +88,33 @@ function App() {
 
     observeTree(document.body);
 
+    const rafId = requestAnimationFrame(revealInView);
+    const forceReveal = !["/", "/home"].includes(location.pathname);
+    const fallbackTimer = setTimeout(() => {
+      if (forceReveal) {
+        document.querySelectorAll("[data-reveal]").forEach((element) => {
+          element.classList.add("is-visible");
+        });
+      } else {
+        revealInView();
+      }
+    }, 600);
+
     let mutationObserver;
     if (typeof MutationObserver !== "undefined") {
       mutationObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => observeTree(node));
         });
+        revealInView();
       });
 
       mutationObserver.observe(document.body, { childList: true, subtree: true });
     }
 
     return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(fallbackTimer);
       observer.disconnect();
       mutationObserver?.disconnect();
     };

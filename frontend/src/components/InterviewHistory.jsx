@@ -1,8 +1,9 @@
 import { ClipboardListIcon, FileTextIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router";
-import { useInterviewHistory } from "../hooks/useInterviews";
+import { useInterviewHistory, useDeleteInterview, useClearInterviewHistory } from "../hooks/useInterviews";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formatScore = (value) => (typeof value === "number" ? `${value}/10` : "-/-");
 
@@ -10,6 +11,9 @@ function InterviewHistory() {
   const navigate = useNavigate();
   const { data, isLoading } = useInterviewHistory();
   const interviews = data?.interviews || [];
+  const deleteMutation = useDeleteInterview();
+  const clearMutation = useClearInterviewHistory();
+  const queryClient = useQueryClient();
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [removingIds, setRemovingIds] = useState([]);
   const [removedIds, setRemovedIds] = useState([]);
@@ -19,10 +23,18 @@ function InterviewHistory() {
   const handleLocalDelete = (id) => {
     setRemovingIds((prev) => [...prev, id]);
     setPendingDeleteId(null);
-    setTimeout(() => {
-      setRemovedIds((prev) => [...prev, id]);
-      setRemovingIds((prev) => prev.filter((item) => item !== id));
-    }, 320);
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        setTimeout(() => {
+          setRemovedIds((prev) => [...prev, id]);
+          setRemovingIds((prev) => prev.filter((item) => item !== id));
+          queryClient.invalidateQueries({ queryKey: ["interviewHistory"] });
+        }, 320);
+      },
+      onError: () => {
+        setRemovingIds((prev) => prev.filter((item) => item !== id));
+      },
+    });
   };
 
   return (
@@ -99,7 +111,11 @@ function InterviewHistory() {
                           <button className="btn btn-ghost btn-xs" onClick={() => setPendingDeleteId(null)}>
                             Cancel
                           </button>
-                          <button className="btn btn-primary btn-xs" onClick={() => handleLocalDelete(interview._id)}>
+                          <button
+                            className="btn btn-primary btn-xs"
+                            onClick={() => handleLocalDelete(interview._id)}
+                            disabled={deleteMutation.isPending}
+                          >
                             Confirm
                           </button>
                         </div>
@@ -137,7 +153,7 @@ function InterviewHistory() {
           <div className="modal-box">
             <h3 className="font-bold text-lg">Clear interview history?</h3>
             <p className="text-sm text-[var(--text-secondary)] mt-2">
-              This removes all interview cards from this view. (Backend deletion is not wired yet.)
+              This removes all interview cards from your history.
             </p>
             <div className="modal-action">
               <button className="btn btn-ghost" onClick={() => setShowClearAll(false)}>
@@ -148,12 +164,21 @@ function InterviewHistory() {
                 onClick={() => {
                   const allIds = interviews.map((item) => item._id);
                   setRemovingIds(allIds);
-                  setTimeout(() => {
-                    setRemovedIds(allIds);
-                    setRemovingIds([]);
-                  }, 320);
+                  clearMutation.mutate(undefined, {
+                    onSuccess: () => {
+                      setTimeout(() => {
+                        setRemovedIds(allIds);
+                        setRemovingIds([]);
+                        queryClient.invalidateQueries({ queryKey: ["interviewHistory"] });
+                      }, 320);
+                    },
+                    onError: () => {
+                      setRemovingIds([]);
+                    },
+                  });
                   setShowClearAll(false);
                 }}
+                disabled={clearMutation.isPending}
               >
                 Clear All
               </button>

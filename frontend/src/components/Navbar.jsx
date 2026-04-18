@@ -7,6 +7,7 @@ import {
   MessageSquareIcon,
   ZapIcon,
 } from "lucide-react";
+
 import { UserButton } from "@clerk/clerk-react";
 
 function Navbar() {
@@ -18,9 +19,10 @@ function Navbar() {
     <nav className="ca-nav">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="ca-logo group">
-          <div className="ca-logo-mark">
-            <ZapIcon className="size-5 text-white" />
-          </div>
+         <div className="ca-logo-mark">
+    <ZapIcon className="size-5 text-white" />
+  </div>
+
           <div className="flex flex-col">
             <span className="ca-logo-text">
               <span>Code</span>

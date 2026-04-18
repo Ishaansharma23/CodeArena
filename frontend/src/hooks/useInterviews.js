@@ -84,3 +84,25 @@ export const useInterviewHistory = () => {
     enabled: isLoaded && isSignedIn,
   });
 };
+
+export const useDeleteInterview = () => {
+  const { getToken, isSignedIn } = useAuth();
+
+  return useMutation({
+    mutationKey: ["deleteInterview"],
+    mutationFn: async (id) =>
+      interviewApi.deleteInterview(id, await requireInterviewToken(getToken, isSignedIn)),
+    onError: (error) => toast.error(error.response?.data?.message || error.message),
+  });
+};
+
+export const useClearInterviewHistory = () => {
+  const { getToken, isSignedIn } = useAuth();
+
+  return useMutation({
+    mutationKey: ["clearInterviewHistory"],
+    mutationFn: async () =>
+      interviewApi.clearHistory(await requireInterviewToken(getToken, isSignedIn)),
+    onError: (error) => toast.error(error.response?.data?.message || error.message),
+  });
+};

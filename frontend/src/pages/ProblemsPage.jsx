@@ -34,7 +34,7 @@ function ProblemsPage() {
             </div>
           ) : (
             <>
-              <div className="space-y-4">
+              <div className="space-y-4 ">
                 {problems.map((problem, index) => (
                   <Link
                     key={problem.id}
@@ -43,16 +43,16 @@ function ProblemsPage() {
                     data-reveal
                     style={{ transitionDelay: `${index * 0.01}s` }}
                   >
-                    <div className="card-body">
-                      <div className="flex items-center justify-between gap-4">
+                    <div className="card-body ">
+                      <div className="flex items-center justify-between gap-4 ">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="size-12 rounded-lg border border-[var(--border-subtle)] flex items-center justify-center">
                               <Code2Icon className="size-6 text-[var(--text-primary)]" />
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h2 className="text-xl font-bold text-[var(--text-primary)]">
+                            <div className="flex-1 ">
+                              <div className="flex items-center gap-2 mb-1 ">
+                                <h2 className="text-xl font-bold text-yellow-400">
                                   {problem.title}
                                 </h2>
                                 <span className={getDifficultyBadgeClass(problem.difficulty)}>

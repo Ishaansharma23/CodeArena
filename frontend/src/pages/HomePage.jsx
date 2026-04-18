@@ -37,7 +37,7 @@ function HomePage() {
         </div>
       </nav>
 
-      <main className="pt-24">
+      <main className="pt-10">
         <HeroSection />
         <SyncCombatSection />
       </main>
@@ -51,6 +51,10 @@ function HomePage() {
           animation: home-cursor 1s steps(1) infinite;
         }
 
+        .home-active {
+          animation: home-active 2.2s ease-in-out infinite;
+        }
+
         @keyframes home-float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }
@@ -59,6 +63,11 @@ function HomePage() {
         @keyframes home-cursor {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }
+        }
+
+        @keyframes home-active {
+          0%, 100% { box-shadow: 0 0 0 rgba(56, 189, 248, 0.25); }
+          50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.45); }
         }
 
       `}</style>

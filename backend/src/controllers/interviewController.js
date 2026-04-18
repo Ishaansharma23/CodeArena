@@ -249,3 +249,34 @@ export const getMyInterviewHistory = async (req, res) => {
     res.status(500).json({ message: error.message || "Failed to fetch interview history" });
   }
 };
+
+export const deleteInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const interview = await Interview.findOneAndDelete({ _id: id, user: req.user._id });
+
+    if (!interview) {
+      return res.status(404).json({ message: "Interview not found" });
+    }
+
+    res.status(200).json({ interviewId: id });
+  } catch (error) {
+    console.error("Error in deleteInterview controller:", error);
+    res.status(500).json({ message: error.message || "Failed to delete interview" });
+  }
+};
+
+export const clearInterviewHistory = async (req, res) => {
+  try {
+    const result = await Interview.deleteMany({
+      user: req.user._id,
+      status: "completed",
+    });
+
+    res.status(200).json({ deletedCount: result.deletedCount || 0 });
+  } catch (error) {
+    console.error("Error in clearInterviewHistory controller:", error);
+    res.status(500).json({ message: error.message || "Failed to clear interview history" });
+  }
+};

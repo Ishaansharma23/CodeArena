@@ -39,4 +39,14 @@ export const interviewApi = {
     const response = await axiosInstance.get("/interviews/history", authConfig(token));
     return response.data;
   },
+
+  deleteInterview: async (id, token) => {
+    const response = await axiosInstance.delete(`/interviews/${id}`, authConfig(token));
+    return response.data;
+  },
+
+  clearHistory: async (token) => {
+    const response = await axiosInstance.delete("/interviews/history", authConfig(token));
+    return response.data;
+  },
 };
