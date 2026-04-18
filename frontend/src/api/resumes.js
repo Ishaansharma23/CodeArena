@@ -6,6 +6,7 @@ const authConfig = (token) => ({
   },
 });
 
+
 export const resumeApi = {
   uploadResume: async (file, token) => {
     const formData = new FormData();
