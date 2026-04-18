@@ -1,12 +1,5 @@
-// Piston API is a service for code execution
-
-const PISTON_API = "https://emkc.org/api/v2/piston";
-
-const LANGUAGE_VERSIONS = {
-  javascript: { language: "javascript", version: "18.15.0" },
-  python: { language: "python", version: "3.10.0" },
-  java: { language: "java", version: "15.0.2" },
-};
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const EXECUTE_API = `${API_BASE}/execute`;
 
 /**
  * @param {string} language - programming language
@@ -15,43 +8,29 @@ const LANGUAGE_VERSIONS = {
  */
 export async function executeCode(language, code) {
   try {
-    const languageConfig = LANGUAGE_VERSIONS[language];
-
-    if (!languageConfig) {
-      return {
-        success: false,
-        error: `Unsupported language: ${language}`,
-      };
-    }
-
-    const response = await fetch(`${PISTON_API}/execute`, {
+    const response = await fetch(EXECUTE_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "omit",
       body: JSON.stringify({
-        language: languageConfig.language,
-        version: languageConfig.version,
-        files: [
-          {
-            name: `main.${getFileExtension(language)}`,
-            content: code,
-          },
-        ],
+        language,
+        code,
       }),
     });
+
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       return {
         success: false,
-        error: `HTTP error! status: ${response.status}`,
+        error: data?.message || `HTTP error! status: ${response.status}`,
       };
     }
 
-    const data = await response.json();
-
-    const output = data.run.output || "";
-    const stderr = data.run.stderr || "";
+    const output = data?.run?.output || "";
+    const stderr = data?.run?.stderr || "";
 
     if (stderr) {
       return {
@@ -71,14 +50,4 @@ export async function executeCode(language, code) {
       error: `Failed to execute code: ${error.message}`,
     };
   }
-}
-
-function getFileExtension(language) {
-  const extensions = {
-    javascript: "js",
-    python: "py",
-    java: "java",
-  };
-
-  return extensions[language] || "txt";
 }

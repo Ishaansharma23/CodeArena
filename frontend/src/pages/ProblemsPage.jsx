@@ -1,12 +1,39 @@
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-
-import { PROBLEMS as PROBLEMS_DATA } from "../data/problems";
 import { ChevronRightIcon, Code2Icon } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
+import { problemApi } from "../api/problems";
 
 function ProblemsPage() {
-  const problems = Object.values(PROBLEMS_DATA || {});
+  const [problems, setProblems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProblems = async () => {
+      try {
+        const data = await problemApi.getProblems();
+        if (!isActive) return;
+        setProblems(data?.problems || []);
+      } catch (error) {
+        if (isActive) {
+          setProblems([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProblems();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const easyProblemsCount = problems.filter((p) => p.difficulty === "Easy").length;
   const mediumProblemsCount = problems.filter((p) => p.difficulty === "Medium").length;
@@ -25,7 +52,14 @@ function ProblemsPage() {
             </p>
           </div>
 
-          {problems.length === 0 ? (
+          {isLoading ? (
+            <div className="ca-panel p-8 text-center" data-reveal>
+              <p className="text-lg font-semibold">Loading problems...</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please wait while we fetch the latest list.
+              </p>
+            </div>
+          ) : problems.length === 0 ? (
             <div className="ca-panel p-8 text-center" data-reveal>
               <p className="text-lg font-semibold">No problems found</p>
               <p className="text-sm text-[var(--text-secondary)]">

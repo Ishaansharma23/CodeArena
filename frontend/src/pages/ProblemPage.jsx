@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { PROBLEMS as PROBLEMS_DATA } from "../data/problems";
 import Navbar from "../components/Navbar";
 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -8,33 +7,73 @@ import ProblemDescription from "../components/ProblemDescription";
 import OutputPanel from "../components/OutputPanel";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import { executeCode } from "../lib/piston";
+import { submitSolution } from "../lib/submit";
+import { problemApi } from "../api/problems";
 
 import toast from "react-hot-toast";
-import confetti from "canvas-confetti";
 
 function ProblemPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const problems = PROBLEMS_DATA || {};
 
+  const [problemList, setProblemList] = useState([]);
+  const [isLoadingProblems, setIsLoadingProblems] = useState(true);
   const [currentProblemId, setCurrentProblemId] = useState("two-sum");
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-  const [code, setCode] = useState(
-    problems[currentProblemId]?.starterCode?.javascript || ""
-  );
+  const [code, setCode] = useState("");
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentProblem = problems[currentProblemId];
+  const currentProblem = useMemo(
+    () => problemList.find((problem) => problem.id === currentProblemId) || null,
+    [problemList, currentProblemId]
+  );
 
-  // update problem when URL param changes
   useEffect(() => {
-    if (id && problems[id]) {
+    let isActive = true;
+
+    const loadProblems = async () => {
+      try {
+        const data = await problemApi.getProblems();
+        if (!isActive) return;
+        setProblemList(data?.problems || []);
+      } catch (error) {
+        if (isActive) {
+          setProblemList([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingProblems(false);
+        }
+      }
+    };
+
+    loadProblems();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (id) {
       setCurrentProblemId(id);
-      setCode(problems[id].starterCode[selectedLanguage]);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id && !currentProblemId && problemList.length > 0) {
+      setCurrentProblemId(problemList[0].id);
+    }
+  }, [id, currentProblemId, problemList]);
+
+  useEffect(() => {
+    if (currentProblem?.starterCode?.[selectedLanguage]) {
+      setCode(currentProblem.starterCode[selectedLanguage]);
       setOutput(null);
     }
-  }, [id, selectedLanguage, problems]);
+  }, [currentProblem, selectedLanguage]);
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -47,69 +86,60 @@ function ProblemPage() {
 
   const handleProblemChange = (newProblemId) => navigate(`/problem/${newProblemId}`);
 
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 80,
-      spread: 250,
-      origin: { x: 0.2, y: 0.6 },
-    });
-
-    confetti({
-      particleCount: 80,
-      spread: 250,
-      origin: { x: 0.8, y: 0.6 },
-    });
-  };
-
-  const normalizeOutput = (output) => {
-    // normalize output for comparison (trim whitespace, handle different spacing)
-    return output
-      .trim()
-      .split("\n")
-      .map((line) =>
-        line
-          .trim()
-          // remove spaces after [ and before ]
-          .replace(/\[\s+/g, "[")
-          .replace(/\s+\]/g, "]")
-          // normalize spaces around commas to single space after comma
-          .replace(/\s*,\s*/g, ",")
-      )
-      .filter((line) => line.length > 0)
-      .join("\n");
-  };
-
-  const checkIfTestsPassed = (actualOutput, expectedOutput) => {
-    const normalizedActual = normalizeOutput(actualOutput);
-    const normalizedExpected = normalizeOutput(expectedOutput);
-
-    return normalizedActual == normalizedExpected;
-  };
-
   const handleRunCode = async () => {
     setIsRunning(true);
     setOutput(null);
 
     const result = await executeCode(selectedLanguage, code);
-    setOutput(result);
+    setOutput({ type: "run", ...result });
     setIsRunning(false);
 
-    // check if code executed successfully and matches expected output
-
     if (result.success) {
-      const expectedOutput = currentProblem.expectedOutput[selectedLanguage];
-      const testsPassed = checkIfTestsPassed(result.output, expectedOutput);
-
-      if (testsPassed) {
-        triggerConfetti();
-        toast.success("All tests passed! Great job!");
-      } else {
-        toast.error("Tests failed. Check your output!");
-      }
+      toast.success("Code executed successfully.");
     } else {
       toast.error("Code execution failed!");
     }
   };
+
+  const handleSubmitCode = async () => {
+    setIsSubmitting(true);
+    setOutput(null);
+
+    const result = await submitSolution({
+      code,
+      language: selectedLanguage,
+      problemId: currentProblemId,
+    });
+
+    setOutput({ type: "submit", ...result });
+    setIsSubmitting(false);
+
+    if (result.status === "Accepted") {
+      toast.success("Accepted! All test cases passed.");
+    } else if (result.status === "Wrong Answer") {
+      toast.error("Wrong Answer. Check the failing case.");
+    } else {
+      toast.error(result.error || "Execution error.");
+    }
+  };
+
+  if (isLoadingProblems) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="page-wrap">
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="ca-panel p-8 text-center">
+              <p className="text-lg font-semibold">Loading problem...</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please wait while we fetch the problem details.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentProblem) {
     return (
@@ -141,7 +171,7 @@ function ProblemPage() {
               problem={currentProblem}
               currentProblemId={currentProblemId}
               onProblemChange={handleProblemChange}
-              allProblems={Object.values(problems)}
+              allProblems={problemList}
             />
           </Panel>
 
@@ -156,9 +186,11 @@ function ProblemPage() {
                   selectedLanguage={selectedLanguage}
                   code={code}
                   isRunning={isRunning}
+                  isSubmitting={isSubmitting}
                   onLanguageChange={handleLanguageChange}
                   onCodeChange={setCode}
                   onRunCode={handleRunCode}
+                  onSubmitCode={handleSubmitCode}
                 />
               </Panel>
 

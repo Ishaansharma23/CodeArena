@@ -14,9 +14,9 @@ function CreateSessionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-2xl">
-        <h3 className="font-bold text-2xl mb-6">Create New Session</h3>
+    <div className="modal modal-open h-screen">
+      <div className="modal-box max-w-2xl bg-black">
+        <h3 className="font-bold text-2xl mb-4">Create New Session</h3>
 
         <div className="space-y-8">
           {/* PROBLEM SELECTION */}
