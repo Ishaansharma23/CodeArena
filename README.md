@@ -4,73 +4,113 @@ Where Code Meets Competition.
 
 ![CodeArena UI](/frontend/public/screenshot-for-readme.png)
 
-## Highlights
+## Overview
 
-- 🧑‍💻 VSCode-Powered Code Editor
-- 🔐 Authentication via Clerk
-- 🎥 1-on-1 Video Interview Rooms
-- 🧭 Dashboard with Live Stats
-- 🔊 Mic & Camera Toggle, Screen Sharing & Recording
-- 💬 Real-time Chat Messaging
-- ⚙️ Secure Code Execution in Isolated Environment
-- 🎯 Auto Feedback — Success / Fail based on test cases
-- 🎉 Confetti on Success + Notifications on Fail
-- 🧩 Practice Problems Page (solo coding mode)
-- 🔒 Room Locking — allows only 2 participants
-- 🧠 Background Jobs with Inngest (async tasks)
-- 🧰 REST API with Node.js & Express
-- ⚡ Data Fetching & Caching via TanStack Query
-- 🤖 CodeRabbit for PR Analysis & Code Optimization
-- 🧑‍💻 Git & GitHub Workflow (branches, PRs, merges)
-- 🚀 Deployment on Sevalla (free-tier friendly)
+CodeArena is a modern coding interview and practice platform. It combines a real-time
+collaboration workspace (video, chat, and code) with a LeetCode-style problem system, secure
+execution, and AI-assisted interview flows.
 
-## What You Can Do
+## Use Cases
 
-- Create or join real-time interview rooms with live video + chat.
-- Practice coding problems with a Monaco (VS Code) editor and Piston-powered execution.
-- Run AI interviews driven by resume context and dynamic follow-up questions.
-- Review session stats, history, and performance feedback.
+- Live pair interviews with video, chat, and a shared code editor.
+- Solo practice with Run and Submit workflows against test cases.
+- AI-driven mock interviews based on resume context and history.
+- Dashboard analytics for sessions and interview performance.
 
-## Tech Stack
+## Key Features
 
-**Frontend**
-- React + Vite
-- Clerk (auth UI)
-- Stream Video SDK (video calls) + Stream Chat
-- Monaco Editor (VS Code-like editor)
-- TanStack Query (data caching)
-- Tailwind CSS + DaisyUI
+- Monaco (VS Code) editor with multi-language runtime support.
+- Public code execution and submission APIs.
+- Test-case based verdicts for submissions.
+- Real-time video and chat via Stream.
+- Resume uploads and parsing for AI interview context.
+- Background jobs and async workflows with Inngest.
 
-**Backend**
-- Node.js + Express
-- MongoDB + Mongoose
-- Clerk (auth middleware)
-- Stream (video + chat orchestration)
-- Inngest (background jobs)
-- LangChain + Gemini (AI interview engine)
-- Pinecone (resume vector search, optional)
+## Tech Stack and Libraries
 
-**Code Execution**
-- Piston API (sandboxed execution)
+Frontend
+- React + Vite: SPA and fast dev tooling.
+- React Router: client-side routing.
+- Monaco Editor: VS Code-like code editor.
+- TanStack Query: data fetching and cache management.
+- Tailwind CSS + DaisyUI: styling system and UI primitives.
+- Stream Video React SDK + Stream Chat React: live video and chat UI.
+- Axios: HTTP client for API calls.
+- React Hot Toast: notifications.
+- React Resizable Panels: split editor and output panels.
+- date-fns: time formatting.
+- Lucide React: icons.
+- Canvas Confetti: success feedback.
 
-## Project Structure
+Backend
+- Node.js + Express: REST API server.
+- MongoDB + Mongoose: data storage and schema modeling.
+- Clerk (Express): authentication and user verification for protected routes.
+- Stream Node SDK + stream-chat: server-side video and chat orchestration.
+- Inngest: background jobs for user sync and workflows.
+- LangChain + Google Generative AI: AI interview engine.
+- Pinecone: optional vector search for resume context.
+- Multer + pdf-parse: resume upload and PDF parsing.
+- Piston API: sandboxed code execution (proxied via backend).
+
+## API Overview
+
+Public endpoints
+- POST /api/execute
+- POST /api/submit
+- GET /api/problems
+- GET /api/problems/:id
+
+Protected endpoints (Clerk required)
+- /api/chat
+- /api/sessions
+- /api/resumes
+- /api/interviews
+
+## Problem Workflow
+
+Run
+- Calls POST /api/execute
+- Returns raw program output
+
+Submit
+- Calls POST /api/submit
+- Runs all test cases on the backend
+- Returns Accepted, Wrong Answer, or Error
+
+## Folder Structure
 
 ```
-backend/    # Express API, DB models, background jobs
-frontend/   # React app + Vite
+backend/
+	scripts/
+	src/
+		controllers/
+		lib/
+		middleware/
+		models/
+		routes/
+		server.js
+frontend/
+	public/
+	src/
+		api/
+		components/
+		data/
+		hooks/
+		lib/
+		pages/
 ```
 
 ## Getting Started
 
-### Prerequisites
-
+Prerequisites
 - Node.js 18+
 - MongoDB connection string
 - Clerk, Stream, and Inngest keys
 
-### Backend Environment Variables
+Backend environment variables
 
-Create a `.env` file in the project root or `backend/`.
+Create a .env file in the project root or backend/.
 
 ```bash
 PORT=3000
@@ -89,7 +129,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key
 
 CLIENT_URL=http://localhost:5173
 
-# AI interview (optional but recommended)
+# AI interview (optional)
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-1.5-flash
 GEMINI_FALLBACK_MODEL=gemini-1.5-pro
@@ -102,9 +142,9 @@ PINECONE_INDEX_NAME=your_pinecone_index
 PINECONE_NAMESPACE_PREFIX=codearena
 ```
 
-### Frontend Environment Variables
+Frontend environment variables
 
-Create `frontend/.env`.
+Create frontend/.env.
 
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
@@ -112,25 +152,29 @@ VITE_API_URL=http://localhost:3000/api
 VITE_STREAM_API_KEY=your_stream_api_key
 ```
 
-## Install & Run
+Install and run
 
-### Backend
-
+Backend
 ```bash
 cd backend
 npm install
 npm run dev
 ```
 
-### Frontend
-
+Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Build
+Seed problems
+
+```bash
+npm run seed:problems --prefix backend
+```
+
+Build
 
 ```bash
 npm run build --prefix frontend
@@ -139,10 +183,10 @@ npm run build --prefix frontend
 ## Notes
 
 - Resume uploads are PDF-only and capped at 5MB.
-- Set `CLIENT_URL` to the Vite host so CORS and Clerk work correctly.
-- If you skip Pinecone or Gemini keys, AI/resume features will fall back gracefully.
+- Set CLIENT_URL to the Vite host so CORS and Clerk work correctly.
+- If Pinecone or Gemini keys are missing, AI and vector features fall back gracefully.
 
 ## Deployment
 
-- Backend and frontend are ready for deployment on Sevalla or any Node/Vite-friendly host.
-- Set environment variables in the hosting provider before deploying.
+- Deploy the backend and frontend on any Node and Vite compatible host.
+- Ensure all environment variables are configured in the hosting provider.
