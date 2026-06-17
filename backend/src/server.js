@@ -32,12 +32,12 @@ app.use(
   })
 );
 
-// 🔥 PUBLIC ROUTES (NO AUTH)
+// PUBLIC ROUTES (NO AUTH)
 app.use("/api/execute", executeRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submit", submitRoutes);
 
-// 🔐 PROTECTED ROUTES (WITH AUTH)
+// PROTECTED ROUTES (WITH AUTH)
 app.use(
   "/api/chat",
   clerkMiddleware({ debug: ENV.NODE_ENV !== "production" }),
