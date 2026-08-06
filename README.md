@@ -10,6 +10,8 @@
 [![LangChain](https://img.shields.io/badge/AI-LangChain-1C3C3C?logo=langchain&logoColor=white)](https://www.langchain.com/)
 [![Live Deployment](https://img.shields.io/badge/Live%20Demo-code--arena--sable.vercel.app-brightgreen?style=flat&logo=vercel)](https://code-arena-sable.vercel.app)
 
+![CodeArena UI](/frontend/public/CodeArena.png)
+
 ---
 
 ## Overview
